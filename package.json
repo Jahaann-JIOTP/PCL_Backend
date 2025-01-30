@@ -15,11 +15,13 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^5.0.0",
+    "http-status-codes": "^2.3.0",
     "mongoose": "^7.3.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.17",
+    "@types/http-status-codes": "^1.2.0",
     "@types/node": "^18.18.5",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.11.0",
