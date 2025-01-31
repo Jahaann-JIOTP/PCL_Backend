@@ -10,7 +10,7 @@ const connectDB = async (): Promise<void> => {
       useNewUrlParser: true,
       useUnifiedTopology: true
     } as mongoose.ConnectOptions);
-    console.log('✅ MongoDB Atlas Connected Successfully');
+    console.log(`✅ Connected to MongoDB Atlas Database: ${mongoose.connection.db.databaseName}`);
   } catch (error) {
     console.error('❌ MongoDB Connection Failed:', error);
     process.exit(1);

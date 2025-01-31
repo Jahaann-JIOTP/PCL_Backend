@@ -15,6 +15,13 @@ export class ApiError extends Error {
   }
 }
 
+
+// Error for when authentication fails
+export class UnauthorizedError extends ApiError {
+  constructor(message = 'Not authorized') {
+    super(StatusCodes.UNAUTHORIZED, message);
+  }
+}
 // Error for when a requested resource is not found
 export class NotFoundError extends ApiError {
   constructor(path: string) {

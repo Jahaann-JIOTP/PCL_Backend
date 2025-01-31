@@ -1,11 +1,16 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 interface IClub extends Document {
-  name: string; // contact person name
-  description: string; 
+  name: string;
+  description: string;
   phoneNumber: string;
   club_name: string;
+  password: string;
   address: string;
+  username: string;  // ✅ Added username
+  reset_password: boolean;  // ✅ Track if password is reset
+  matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
 const ClubSchema = new Schema<IClub>(
@@ -18,9 +23,25 @@ const ClubSchema = new Schema<IClub>(
       match: [/^\d{10,15}$/, 'Phone number must be between 10-15 digits'],
     },
     club_name: { type: String, required: true, unique: true, trim: true },
-    address: { type: String,trim: true },
+    address: { type: String, trim: true },
+    password: { type: String, required: true },
+    username: { type: String, required: true, unique: true, lowercase: true },  // ✅ Unique username, lowercase for case-insensitive search
+    reset_password: { type: Boolean, default: false },  // ✅ Default false for first login
   },
   { timestamps: true },
 );
+
+// Hash password before saving
+ClubSchema.pre<IClub>('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+// Password verification method
+ClubSchema.methods.matchPassword = async function (enteredPassword: string) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 export default mongoose.model<IClub>('Club', ClubSchema);

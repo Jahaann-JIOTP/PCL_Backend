@@ -1,8 +1,23 @@
 import express from 'express';
-import { registerClub } from '../controllers/clubController';
+import { registerClub, clubLogin, getProfile, logoutClub, restPassword } from '../controllers/clubController';
+import { protect } from '../middleware/authMiddleware';
 
-const router = express.Router();
+const clubRouter = express.Router();
 
-router.post('/register', registerClub);
+// Register the Clubs 
+clubRouter.post('/register', registerClub);
+// Login Club 
+clubRouter.post('/login', clubLogin); 
 
-export default router;
+// Get Profile - PROTECTED ROUTE - Only accessible with a valid token
+clubRouter.get('/profile', protect, getProfile);
+
+// Logout Rout for the
+clubRouter.post('/logout', protect, logoutClub);
+
+// Reset the password on first login - protected
+clubRouter.post('/reset-password', protect, restPassword);
+
+
+
+export default clubRouter;
