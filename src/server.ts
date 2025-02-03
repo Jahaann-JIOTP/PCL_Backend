@@ -4,6 +4,8 @@ import cors from 'cors';
 import connectDB from './config/db';
 import clubRoutes from './routes/clubRoutes';
 import ErrorHandler from './utils/errorHandler';
+import playerRouter from './routes/playerRoutes';
+import teamRouter from './routes/teamRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +24,8 @@ app.use(cors());
 
 // Routes
 app.use('/api/clubs', clubRoutes);
+app.use('/api/players', playerRouter);
+app.use('/api/teams', teamRouter);
 
 // Global Error Handler
 app.use(ErrorHandler.handle());
