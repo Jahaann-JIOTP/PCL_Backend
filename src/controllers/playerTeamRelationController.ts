@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { assignMultiplePlayersToTeam, getPlayersByFilter, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
+import { assignMultiplePlayersToTeam, checkPlayerAssignment, deletePlayerService, getPlayersByFilter, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
@@ -61,4 +61,40 @@ export const unassignPlayer = asyncWrapper(async (req: AuthenticatedRequest, res
   const result = await unassignPlayerFromTeam(player_cnic, clubId);
 
   return new SuccessResponse(result, 'Player unassigned successfully');
+});
+
+
+// ✅ Controller to check if a player is assigned before deletion
+export const checkBeforeDelete = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  const { player_cnic } = req.params;
+
+  // ✅ Get Club ID from JWT (No need to pass clubId from frontend)
+  if (!req.club?.id) {
+    throw new BadRequestError('Club authentication failed');
+  }
+  const clubId = req.club.id;
+
+  if (!player_cnic) {
+    throw new BadRequestError('Player CNIC is required');
+  }
+
+  const result = await checkPlayerAssignment(player_cnic, clubId);
+
+  return new SuccessResponse(result, 'Player assignment checked successfully');
+});
+
+
+// ✅ Delete Player Controller
+export const removePlayer = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  const { player_cnic } = req.params;
+
+  if (!req.club?.id) {
+    throw new BadRequestError('Club authentication failed');
+  }
+  const clubId = req.club.id;
+
+  // ✅ Call the service to handle deletion
+  const result = await deletePlayerService(player_cnic, clubId);
+
+  return new SuccessResponse(result, 'Player deletion processed successfully');
 });

@@ -62,7 +62,6 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
   };
 };
 
-
 // ✅ Fetch Players Based on Query Params
 export const getPlayersByFilter = async (clubId: string, teamName?: string, assignedStatus?: 'assigned' | 'unassigned') => {
   let filter: any = { club: clubId };
@@ -124,4 +123,64 @@ export const unassignPlayerFromTeam = async (playerCnic: string, clubId: string)
   await player.save();
 
   return { message: 'Player unassigned successfully', player };
+};
+
+
+// ✅ Check if the player is assigned to a team before deletion
+export const checkPlayerAssignment = async (playerCnic: string, clubId: string) => {
+  // ✅ Find the player by CNIC and Club ID
+  const player = await Player.findOne({ cnic: playerCnic, club: clubId });
+  if (!player) {
+    throw new BadRequestError('Player not found or does not belong to your club');
+  }
+
+  // ✅ If the player is assigned to a team, return details
+  if (player.team) {
+    const team = await Team.findById(player.team);
+    return {
+      assigned: true,
+      message: `Player is assigned to the team: ${team?.team_name}`,
+      player: {
+        name: player.name,
+        cnic: player.cnic,
+        team_name: team?.team_name,
+      },
+    };
+  }
+
+  // ✅ Player is unassigned and can be deleted
+  return { assigned: false, message: 'Player is unassigned and can be deleted' };
+};
+
+
+
+
+
+// ✅ Delete Player Service
+export const deletePlayerService = async (playerCnic: string, clubId: string) => {
+  // ✅ Find the player by CNIC and club
+  const player = await Player.findOne({ cnic: playerCnic, club: clubId });
+
+  if (!player) {
+    throw new BadRequestError('Player not found in your club');
+  }
+
+  // ✅ Check if the player is assigned to a team
+  if (player.team) {
+    const team = await Team.findById(player.team);
+    if (team) {
+      return {
+        success: false,
+        message: `Player '${player.name}' with CNIC '${player.cnic}' is assigned to team '${team.team_name}'. Please unassign the player before deletion.`,
+      };
+    }
+  }
+
+  // ✅ If unassigned, delete the player
+  await Player.findByIdAndDelete(player._id);
+
+  return {
+    success: true,
+    message: `Player '${player.name}' with CNIC '${player.cnic}' has been deleted successfully.`,
+  };
 };

@@ -1,16 +1,43 @@
+// import mongoose from 'mongoose';
+// import dotenv from 'dotenv';
+
+// // Load environment variables
+// dotenv.config();
+
+// const connectDB = async (): Promise<void> => {
+//   try {
+//     await mongoose.connect(process.env.MONGO_URI as string, {
+//       useNewUrlParser: true,
+//       useUnifiedTopology: true
+//     } as mongoose.ConnectOptions);
+//     console.log(`✅ Connected to MongoDB Atlas Database: ${mongoose.connection.db.databaseName}`);
+//   } catch (error) {
+//     console.error('❌ MongoDB Connection Failed:', error);
+//     process.exit(1);
+//   }
+// };
+
+// export default connectDB;
+
+
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config();
+dotenv.config(); // Load environment variables
 
-const connectDB = async (): Promise<void> => {
+const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI as string, {
+    if (!process.env.MONGO_URI) {
+      throw new Error('❌ MONGO_URI is not defined in environment variables');
+    }
+
+    await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
+      authSource: "iotdb", // Ensure auth source is correct
     } as mongoose.ConnectOptions);
-    console.log(`✅ Connected to MongoDB Atlas Database: ${mongoose.connection.db.databaseName}`);
+
+    console.log('✅ MongoDB Connected to iotdb');
   } catch (error) {
     console.error('❌ MongoDB Connection Failed:', error);
     process.exit(1);
