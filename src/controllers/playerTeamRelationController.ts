@@ -1,27 +1,28 @@
 import { Request, Response } from 'express';
-import { assignPlayerToTeam, getPlayersByFilter, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
+import { assignMultiplePlayersToTeam, getPlayersByFilter, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { BadRequestError } from '../utils/apiError';
 
-// ✅ Assign Player to a Team Controller
-export const assignPlayer = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+// ✅ Assign Multiple Players to a Team Controller
+export const assignPlayers = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   const { player_cnic, team_name } = req.body;
 
-  // ✅ Ensure the JWT token contains club information
+  // ✅ Ensure JWT token contains club information
   if (!req.club?.id) {
     throw new BadRequestError('Club authentication failed');
   }
   const clubId = req.club.id;
 
-  if (!player_cnic || !team_name) {
-    throw new BadRequestError('Both player_cnic and team_name are required');
+  // ✅ Ensure request has a valid list of players
+  if (!player_cnic || !Array.isArray(player_cnic) || player_cnic.length === 0 || !team_name) {
+    throw new BadRequestError('A valid list of player CNICs and a team name are required');
   }
 
-  const result = await assignPlayerToTeam(player_cnic, team_name, clubId);
+  const result = await assignMultiplePlayersToTeam(player_cnic, team_name, clubId);
 
-  return new SuccessResponse(result, 'Player assigned to team successfully');
+  return new SuccessResponse(result, 'Players assigned to team successfully');
 });
 
 // ✅ Get Players Controller (Using JWT to Identify Club)

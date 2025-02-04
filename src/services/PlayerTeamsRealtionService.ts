@@ -3,51 +3,63 @@ import Player from '../models/players';
 import Team from '../models/teams';
 import { BadRequestError } from '../utils/apiError';
 
-// ✅ Assign Player to a Team Service
-export const assignPlayerToTeam = async (playerCnic: string, teamName: string, clubId: string) => {
-  try {
-    // ✅ Check if the team exists (by name and club)
-    const team = await Team.findOne({ team_name: teamName, club: clubId });
-    if (!team) {
-      throw new BadRequestError('Team not found or does not belong to your club');
-    }
 
-    // ✅ Check if the player exists (by CNIC and club)
-    const player = await Player.findOne({ cnic: playerCnic, club: clubId });
-    if (!player) {
-      throw new BadRequestError('Player not found or does not belong to your club');
-    }
-
-    // ✅ Check if the player is already assigned to a team
-    if (player.team) {
-      throw new BadRequestError('Player is already assigned to a team');
-    }
-
-    // ✅ Enforce player limits based on team type
-    const teamSize = team.players?.length || 0;
-    if (team.team_type === 'mix' && teamSize >= 8) {
-      throw new BadRequestError('A mix team cannot have more than 8 players');
-    }
-    if (team.team_type === 'women-only' && teamSize >= 6) {
-      throw new BadRequestError('A women-only team cannot have more than 6 players');
-    }
-
-    // ✅ Assign the player to the team (no need to convert ObjectId)
-    player.team = team._id;  // Directly use ObjectId from MongoDB
-    player.assigned_team = 'assigned';
-    player.assigned_team_name = team.team_name;
-
-    // ✅ Update team with new player
-    await Team.findByIdAndUpdate(team._id, { $push: { players: player._id } });
-
-    // ✅ Save player assignment
-    await player.save();
-
-    return { player, team };
-  } catch (error) {
-    console.error('Error in assigning player:', error);
-    throw new BadRequestError('Failed to assign');
+// ✅ Assign Multiple Players to a Team
+export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamName: string, clubId: string) => {
+  // ✅ Check if the team exists
+  const team = await Team.findOne({ team_name: teamName, club: clubId });
+  if (!team) {
+    throw new BadRequestError('Team not found or does not belong to your club');
   }
+
+  // ✅ Get all players by CNICs
+  const players = await Player.find({ cnic: { $in: playerCnics }, club: clubId });
+
+  // ✅ Identify missing players
+  const foundCnics = players.map((p) => p.cnic);
+  const missingPlayers = playerCnics.filter((cnic) => !foundCnics.includes(cnic));
+
+  // ✅ Identify already assigned players
+  const alreadyAssigned = players.filter((p) => p.team);
+  const alreadyAssignedCnics = alreadyAssigned.map((p) => p.cnic);
+  
+  // ✅ Remove already assigned players from processing
+  const playersToAssign = players.filter((p) => !p.team);
+
+  // ✅ Check if adding players exceeds team limit
+  const teamSize = team.players?.length || 0;
+  const newTotal = teamSize + playersToAssign.length;
+
+  if (team.team_type === 'mix' && newTotal > 8) {
+    throw new BadRequestError(`A mix team cannot have more than 8 players. Available slots: ${8 - teamSize}`);
+  }
+  if (team.team_type === 'women-only' && newTotal > 6) {
+    throw new BadRequestError(`A women-only team cannot have more than 6 players. Available slots: ${6 - teamSize}`);
+  }
+
+  // ✅ Assign all valid players to the team
+  const playerIds = playersToAssign.map((p) => p._id);
+
+  await Player.updateMany(
+    { _id: { $in: playerIds } },
+    {
+      $set: {
+        team: team._id,
+        assigned_team: 'assigned',
+        assigned_team_name: team.team_name,
+      },
+    }
+  );
+
+  // ✅ Add players to the team's player list
+  await Team.findByIdAndUpdate(team._id, { $push: { players: { $each: playerIds } } });
+
+  return {
+    assignedPlayers: playersToAssign.length,
+    missingPlayers,
+    alreadyAssignedPlayers: alreadyAssignedCnics,
+    team,
+  };
 };
 
 
