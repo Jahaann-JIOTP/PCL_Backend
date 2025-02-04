@@ -53,7 +53,7 @@ export const addPlayer = async (
 export const getPlayersByClub = async (clubId: string) => {
     // ✅ Find all players belonging to the club and select only required fields
     const players = await Player.find({ club: clubId })
-      .select('name fitness_category gender age assigned_team assigned_team_name') // ✅ Only these fields will be returned
+      .select('name fitness_category gender age assigned_team assigned_team_name cnic') // ✅ Only these fields will be returned
       .lean(); // ✅ Convert Mongoose documents to plain JSON objects
   
     if (!players || players.length === 0) {

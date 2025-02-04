@@ -6,6 +6,7 @@ import clubRoutes from './routes/clubRoutes';
 import ErrorHandler from './utils/errorHandler';
 import playerRouter from './routes/playerRoutes';
 import teamRouter from './routes/teamRoutes';
+import relationRouter from './routes/PlayerTeamsRealtionRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,8 @@ app.use(cors());
 app.use('/api/clubs', clubRoutes);
 app.use('/api/players', playerRouter);
 app.use('/api/teams', teamRouter);
+app.use('/api/relation', relationRouter);
+
 
 // Global Error Handler
 app.use(ErrorHandler.handle());
