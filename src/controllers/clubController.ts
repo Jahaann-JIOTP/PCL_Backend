@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createClub, loginClub, resetPassword } from '../services/clubService';
+import { createClub, getClubProfile, loginClub, resetPassword } from '../services/clubService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
@@ -31,8 +31,16 @@ export const clubLogin = asyncWrapper(async (req: Request, res: Response) => {
 });
 
 // ✅ Get Club Profile (Now Returns Teams Associated with Club)
+
+// ✅ Get Club Profile Controller
 export const getProfile = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
-    return new SuccessResponse({ club: req.club?.club_name}, 'You have accessed a protected route!');
+  if (!req.club?.id) {
+    throw new BadRequestError('Club authentication failed');
+  }
+
+  const clubProfile = await getClubProfile(req.club.id);
+
+  return new SuccessResponse(clubProfile, 'Club profile retrieved successfully');
 });
 
 // ✅ Logout Club (No Changes Required)
@@ -42,7 +50,7 @@ export const logoutClub = asyncWrapper(async (req: Request, res: Response) => {
 
 // ✅ Reset Password Controller (No Changes Required)
 export const restPassword = asyncWrapper(async (req: Request, res: Response) => {
-  const { club_name, password } = req.body; 
+  const { club_name, password } = req.body;
 
   if (!club_name || !password) {
     throw new Error('Club name and password are required');

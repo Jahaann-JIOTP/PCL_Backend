@@ -2,6 +2,7 @@ import Club from '../models/Club';
 import bcrypt from 'bcryptjs';
 import generateToken from '../utils/jwtHelper';
 import { BadRequestError } from '../utils/apiError';
+import teams from '../models/teams';
 
 // ✅ Register the Club Service (Now Initializes `teams` as an Empty Array)
 export const createClub = async (
@@ -77,4 +78,47 @@ export const resetPassword = async (club_name: string, newPassword: string) => {
   club.reset_password = true;
 
   await club.save();
+};
+
+
+// ✅ Get Club Profile with team details including player counts
+export const getClubProfile = async (clubId: string) => {
+  // ✅ Find the club and populate its teams
+  const club = await Club.findById(clubId).populate('teams', 'team_name team_type players');
+
+  if (!club) {
+    throw new BadRequestError('Club not found');
+  }
+
+  // ✅ Fetch all teams for this club
+  const clubTeams = await teams.find({ club: clubId });
+
+  // ✅ Count teams based on type
+  const totalTeams = clubTeams.length;
+  const mixTeams = clubTeams.filter((team) => team.team_type === 'mix');
+  const womenOnlyTeams = clubTeams.filter((team) => team.team_type === 'women-only');
+
+  return {
+    id: club._id,
+    name: club.name,
+    description: club.description,
+    phoneNumber: club.phoneNumber,
+    club_name: club.club_name,
+    address: club.address,
+    username: club.username,
+    reset_password: club.reset_password,
+    totalTeams,
+    mixTeamsCount: mixTeams.length,
+    womenOnlyTeamsCount: womenOnlyTeams.length,
+    teamsByType: {
+      mix: mixTeams.map((team) => ({
+        name: team.team_name,
+        playerCount: team.players.length, 
+      })),
+      womenOnly: womenOnlyTeams.map((team) => ({
+        name: team.team_name,
+        playerCount: team.players.length, 
+      })),
+    },
+  };
 };
