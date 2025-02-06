@@ -18,7 +18,7 @@ export const createClub = async (
   }
 
   // ✅ Generate a unique username (based on club_name)
-  const username = club_name.toLowerCase().replace(/\s/g, '') + Math.floor(1000 + Math.random() * 9000);
+  const username = club_name.toLowerCase().replace(/\s/g, '');
 
   const club = new Club({ 
     name, 

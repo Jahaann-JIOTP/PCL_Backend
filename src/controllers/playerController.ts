@@ -38,7 +38,6 @@ export const addNewPlayer = asyncWrapper(async (req: AuthenticatedRequest, res: 
 });
 
 
-
 // ✅ Get Players Controller (Using JWT to Identify Club)
 export const getPlayers = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
     // ✅ Extract clubId from JWT token
