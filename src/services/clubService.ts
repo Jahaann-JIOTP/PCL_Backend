@@ -99,7 +99,7 @@ export const getClubProfile = async (clubId: string) => {
   const womenOnlyTeams = clubTeams.filter((team) => team.team_type === 'women-only');
 
   return {
-    id: club._id,
+    // id: club._id,
     name: club.name,
     description: club.description,
     phoneNumber: club.phoneNumber,

@@ -3,7 +3,6 @@ import Player from '../models/players';
 import Team from '../models/teams';
 import { BadRequestError } from '../utils/apiError';
 
-
 // ✅ Assign Multiple Players to a Team
 export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamName: string, clubId: string) => {
   // ✅ Check if the team exists
@@ -22,7 +21,7 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
   // ✅ Identify already assigned players
   const alreadyAssigned = players.filter((p) => p.team);
   const alreadyAssignedCnics = alreadyAssigned.map((p) => p.cnic);
-  
+
   // ✅ Remove already assigned players from processing
   const playersToAssign = players.filter((p) => !p.team);
 
@@ -48,7 +47,7 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
         assigned_team: 'assigned',
         assigned_team_name: team.team_name,
       },
-    }
+    },
   );
 
   // ✅ Add players to the team's player list
@@ -63,7 +62,12 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
 };
 
 // ✅ Fetch Players Based on Query Params
-export const getPlayersByFilter = async (clubId: string, teamName?: string, assignedStatus?: 'assigned' | 'unassigned') => {
+export const getPlayersByFilter = async (
+  clubId: string, 
+  teamName?: string, 
+  assignedStatus?: 'assigned' | 'unassigned', 
+  teamType?: 'mix' | 'women-only' // ✅ Added teamType filter
+) => {
   let filter: any = { club: clubId };
 
   // ✅ If team_name is provided, get players of that team
@@ -75,10 +79,21 @@ export const getPlayersByFilter = async (clubId: string, teamName?: string, assi
     filter.team = team._id;
     filter.assigned_team = 'assigned'; // ✅ Ensure only assigned players
   }
+
   // ✅ If assigned_team=unassigned is provided, fetch only unassigned players
   if (assignedStatus === 'unassigned') {
-    filter = { club: clubId, assigned_team: 'unassigned', assigned_team_name: null };
+    filter.assigned_team = 'unassigned'; 
+    filter.assigned_team_name = null; 
+
+    // ✅ Apply gender-based filter **ONLY** when `teamType=women-only`
+    if (teamType === 'women-only') {
+      filter.gender = 'female'; // ✅ Ensure only female players appear
+    } else if (teamType === 'mix') {
+      filter.gender = { $in: ['male', 'female'] }; // ✅ Ensure both genders appear in `mix`
+    }
   }
+
+  console.log("Applying filter: ", filter); // ✅ Debugging
 
   // ✅ Fetch players based on the filter
   const players = await Player.find(filter)
@@ -91,6 +106,9 @@ export const getPlayersByFilter = async (clubId: string, teamName?: string, assi
 
   return players;
 };
+
+
+
 
 // ✅ Unassign a Player from a Team
 export const unassignPlayerFromTeam = async (playerCnic: string, clubId: string) => {
@@ -117,14 +135,13 @@ export const unassignPlayerFromTeam = async (playerCnic: string, clubId: string)
   // ✅ Reset the player’s team details
   player.team = undefined;
   player.assigned_team = 'unassigned';
-  player.assigned_team_name = undefined;
+  // player.assigned_team_name = undefined;
 
   // ✅ Save the updated player
   await player.save();
 
   return { message: 'Player unassigned successfully', player };
 };
-
 
 // ✅ Check if the player is assigned to a team before deletion
 export const checkPlayerAssignment = async (playerCnic: string, clubId: string) => {
@@ -151,10 +168,6 @@ export const checkPlayerAssignment = async (playerCnic: string, clubId: string) 
   // ✅ Player is unassigned and can be deleted
   return { assigned: false, message: 'Player is unassigned and can be deleted' };
 };
-
-
-
-
 
 // ✅ Delete Player Service
 export const deletePlayerService = async (playerCnic: string, clubId: string) => {

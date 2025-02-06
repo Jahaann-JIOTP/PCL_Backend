@@ -12,9 +12,8 @@ interface IPlayer extends Document {
   disability: string;
   age: number;
   assigned_team: 'assigned' | 'unassigned';
-  assigned_team_name?: string;
   club: mongoose.Schema.Types.ObjectId;
-  team?: mongoose.Schema.Types.ObjectId;
+  team?: mongoose.Schema.Types.ObjectId; // ✅ Now correctly referenced
 }
 
 const PlayerSchema = new Schema<IPlayer>(
@@ -28,11 +27,16 @@ const PlayerSchema = new Schema<IPlayer>(
     contact: { type: String, required: true },
     emergency_contact: { type: String, required: true },
     disability: { type: String, default: 'None' },
-    age: { type: Number, required: true }, // ✅ Now will be set before validation
+
+    // ✅ Auto-calculated age before saving
+    age: { type: Number, required: true },
+
+    // ✅ Assigned Team Logic (Only Uses `team` Reference Now)
     assigned_team: { type: String, enum: ['assigned', 'unassigned'], default: 'unassigned' },
-    assigned_team_name: { type: String, default: null },
+
+    // ✅ References to Club and Team (Relations)
     club: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
-    team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
+    team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null }, // ✅ Only stores ObjectId, no longer stores name
   },
   { timestamps: true },
 );
@@ -42,7 +46,7 @@ PlayerSchema.pre<IPlayer>('validate', function (next) {
   if (this.date_of_birth) {
     const birthDate = new Date(this.date_of_birth);
     const today = new Date();
-    
+
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDifference = today.getMonth() - birthDate.getMonth();
 
@@ -56,5 +60,10 @@ PlayerSchema.pre<IPlayer>('validate', function (next) {
   next();
 });
 
+// ✅ Auto-set assigned_team status before saving
+PlayerSchema.pre<IPlayer>('save', function (next) {
+  this.assigned_team = this.team ? 'assigned' : 'unassigned';
+  next();
+});
 
 export default mongoose.model<IPlayer>('Player', PlayerSchema);
