@@ -61,16 +61,62 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
   };
 };
 
-// ✅ Fetch Players Based on Query Params
+// // ✅ Fetch Players Based on Query Params
+// export const getPlayersByFilter = async (
+//   clubId: string,
+//   teamName?: string,
+//   assignedStatus?: 'assigned' | 'unassigned',
+//   teamType?: 'mix' | 'women-only' // ✅ Added teamType filter
+// ) => {
+//   let filter: any = { club: clubId };
+
+//   // ✅ If team_name is provided, get players of that team
+//   if (teamName) {
+//     const team = await Team.findOne({ team_name: teamName, club: clubId });
+//     if (!team) {
+//       throw new BadRequestError('Team not found or does not belong to your club');
+//     }
+//     filter.team = team._id;
+//     filter.assigned_team = 'assigned'; // ✅ Ensure only assigned players
+//   }
+
+//   // ✅ If assigned_team=unassigned is provided, fetch only unassigned players
+//   if (assignedStatus === 'unassigned') {
+//     filter.assigned_team = 'unassigned';
+//     filter.assigned_team_name = null;
+
+//     // ✅ Apply gender-based filter **ONLY** when `teamType=women-only`
+//     if (teamType === 'women-only') {
+//       filter.gender = 'female'; // ✅ Ensure only female players appear
+//     } else if (teamType === 'mix') {
+//       filter.gender = { $in: ['male', 'female'] }; // ✅ Ensure both genders appear in `mix`
+//     }
+//   }
+
+//   console.log("Applying filter: ", filter); // ✅ Debugging
+
+//   // ✅ Fetch players based on the filter
+//   const players = await Player.find(filter)
+//     .select('name cnic gender assigned_team assigned_team_name age contact')
+//     .lean();
+
+//   if (!players.length) {
+//     throw new BadRequestError('No players found with the given criteria');
+//   }
+
+//   return players;
+// };
+
+// // ✅ Fetch Players Based on Query Params   - changed Params
 export const getPlayersByFilter = async (
-  clubId: string, 
-  teamName?: string, 
-  assignedStatus?: 'assigned' | 'unassigned', 
-  teamType?: 'mix' | 'women-only' // ✅ Added teamType filter
+  clubId: string,
+  teamName?: string,
+  assignedStatus?: 'assigned' | 'unassigned',
+  teamTypeKey?: string, // ✅ Changed from `teamType` to `teamTypeKey`
 ) => {
   let filter: any = { club: clubId };
 
-  // ✅ If team_name is provided, get players of that team
+  // ✅ If teamName is provided, get players of that specific team
   if (teamName) {
     const team = await Team.findOne({ team_name: teamName, club: clubId });
     if (!team) {
@@ -80,25 +126,38 @@ export const getPlayersByFilter = async (
     filter.assigned_team = 'assigned'; // ✅ Ensure only assigned players
   }
 
-  // ✅ If assigned_team=unassigned is provided, fetch only unassigned players
+  // ✅ Fetch Unassigned Players Before Gender Filtering
   if (assignedStatus === 'unassigned') {
-    filter.assigned_team = 'unassigned'; 
-    filter.assigned_team_name = null; 
+    filter.assigned_team = 'unassigned';
+    filter.assigned_team_name = null;
 
-    // ✅ Apply gender-based filter **ONLY** when `teamType=women-only`
-    if (teamType === 'women-only') {
-      filter.gender = 'female'; // ✅ Ensure only female players appear
-    } else if (teamType === 'mix') {
-      filter.gender = { $in: ['male', 'female'] }; // ✅ Ensure both genders appear in `mix`
+    // ✅ Fetch Players Before Gender Filtering
+    const allUnassignedPlayers = await Player.find(filter).lean();
+    console.log('✅ All Unassigned Players: ', allUnassignedPlayers);
+
+    if (teamTypeKey) {
+      const team = await Team.findOne({ team_name: teamTypeKey, club: clubId });
+
+      if (!team) {
+        throw new BadRequestError('Team not found or does not belong to your club');
+      }
+
+      const teamType = team.team_type;
+
+      // ✅ Apply Gender-Based Filtering
+      if (teamType === 'women-only') {
+        filter.gender = 'female';
+      } else if (teamType === 'mix') {
+        filter.gender = { $in: ['male', 'female'] };
+      }
     }
   }
 
-  console.log("Applying filter: ", filter); // ✅ Debugging
+  // console.log('Applying filter: ', filter); // ✅ Debugging
 
   // ✅ Fetch players based on the filter
-  const players = await Player.find(filter)
-    .select('name cnic gender assigned_team assigned_team_name age contact')
-    .lean();
+  const players = await Player.find(filter).select('name cnic gender assigned_team age contact fitness').lean();
+  // console.log(players);
 
   if (!players.length) {
     throw new BadRequestError('No players found with the given criteria');
@@ -106,9 +165,6 @@ export const getPlayersByFilter = async (
 
   return players;
 };
-
-
-
 
 // ✅ Unassign a Player from a Team
 export const unassignPlayerFromTeam = async (playerCnic: string, clubId: string) => {

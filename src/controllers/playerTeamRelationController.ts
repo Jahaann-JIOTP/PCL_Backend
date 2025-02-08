@@ -34,14 +34,18 @@ export const getFiltersPlayers = asyncWrapper(async (req: AuthenticatedRequest, 
   const clubId = req.club.id;
 
   // ✅ Extract query parameters
-  const { team_name, assigned_team, teamType } = req.query as { 
+  const { team_name, assigned_team, teamTypeKey } = req.query as { 
     team_name?: string; 
     assigned_team?: 'assigned' | 'unassigned';
-    teamType?: 'mix' | 'women-only'; // ✅ Extract teamType filter
+    teamTypeKey?: string; // ✅ Extract teamType filter
   };
 
+
+
+  //  const teamType = 'women-only';
+
   // ✅ Fetch players of the club based on query params (Pass teamType)
-  const players = await getPlayersByFilter(clubId, team_name, assigned_team, teamType);
+  const players = await getPlayersByFilter(clubId, team_name, assigned_team, teamTypeKey);
 
   return new SuccessResponse(players, 'Players retrieved successfully');
 });
