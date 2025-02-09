@@ -49,7 +49,7 @@ export const getTeamsByClub = async (clubId: string, teamType?: 'mix' | 'women-o
     // ✅ Find teams matching the club (and optional team type)
     const teams = await Team.find(filter)
       .select('team_name team_type description players')
-      .populate('players', 'name cnic assigned_team gender age') // ✅ Populate only selected player fields
+      .populate('players', 'name cnic assigned_team gender age fitness_category') // ✅ Populate only selected player fields
       .lean();
   
     if (!teams || teams.length === 0) {

@@ -156,7 +156,7 @@ export const getPlayersByFilter = async (
   // console.log('Applying filter: ', filter); // ✅ Debugging
 
   // ✅ Fetch players based on the filter
-  const players = await Player.find(filter).select('name cnic gender assigned_team age contact fitness').lean();
+  const players = await Player.find(filter).select('name cnic gender assigned_team age contact fitness_category').lean();
   // console.log(players);
 
   if (!players.length) {
