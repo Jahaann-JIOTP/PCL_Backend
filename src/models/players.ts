@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-interface IPlayer extends Document {
+export interface IPlayer extends Document {
   name: string;
   cnic: string;
   date_of_birth: Date;
@@ -9,11 +9,12 @@ interface IPlayer extends Document {
   gender: 'male' | 'female';
   contact: string;
   emergency_contact: string;
-  disability: string;
+  disability?: string  | null;
   age: number;
   assigned_team: 'assigned' | 'unassigned';
   club: mongoose.Schema.Types.ObjectId;
-  team?: mongoose.Schema.Types.ObjectId; // ✅ Now correctly referenced
+  team?: mongoose.Schema.Types.ObjectId;
+  bib_number?: number | null; // ✅ Newly added field (optional)
 }
 
 const PlayerSchema = new Schema<IPlayer>(
@@ -31,17 +32,20 @@ const PlayerSchema = new Schema<IPlayer>(
     // ✅ Auto-calculated age before saving
     age: { type: Number, required: true },
 
-    // ✅ Assigned Team Logic (Only Uses `team` Reference Now)
+    // ✅ Assigned Team Logic
     assigned_team: { type: String, enum: ['assigned', 'unassigned'], default: 'unassigned' },
 
-    // ✅ References to Club and Team (Relations)
+    // ✅ References to Club and Team
     club: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
-    team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null }, // ✅ Only stores ObjectId, no longer stores name
+    team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
+
+    // ✅ Bib Number (Optional)
+    bib_number: { type: Number, default: null },
   },
   { timestamps: true },
 );
 
-// ✅ Fix Age Calculation (Correct Year Difference)
+// ✅ Fix Age Calculation
 PlayerSchema.pre<IPlayer>('validate', function (next) {
   if (this.date_of_birth) {
     const birthDate = new Date(this.date_of_birth);
@@ -50,7 +54,6 @@ PlayerSchema.pre<IPlayer>('validate', function (next) {
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDifference = today.getMonth() - birthDate.getMonth();
 
-    // If birth month is later in the year, subtract one year from age
     if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }

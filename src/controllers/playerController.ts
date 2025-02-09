@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { addPlayer, getPlayersByClub } from '../services/playerService';
+import { addPlayer, editPlayer, getPlayersByClub } from '../services/playerService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
@@ -51,3 +51,17 @@ export const getPlayers = asyncWrapper(async (req: AuthenticatedRequest, res: Re
   
     return new SuccessResponse(players, 'Players retrieved successfully');
   });
+
+  // ✅ Edit Player Controller
+export const updatePlayer = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  const { playerCnic } = req.params; // ✅ Player cnic from request params
+  const updates = req.body; // ✅ Dynamic updates from request body
+
+  if (!playerCnic) {
+    throw new BadRequestError('Player ID is required');
+  }
+
+  const updatedPlayer = await editPlayer(playerCnic, updates);
+
+  return new SuccessResponse(updatedPlayer, 'Player updated successfully');
+});

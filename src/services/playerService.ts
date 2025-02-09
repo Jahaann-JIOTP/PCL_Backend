@@ -1,7 +1,17 @@
-import Player from '../models/players';
+import Player, { IPlayer } from '../models/players';
 import Club from '../models/Club';
 import { BadRequestError } from '../utils/apiError';
 import teams from '../models/teams';
+
+
+// ✅ COMMON FUNCTION: Find Player by CNIC (Used Everywhere)
+export const findPlayerByCnic = async (cnic: string) => {
+  const player = await Player.findOne({ cnic });
+  if (!player) {
+    throw new BadRequestError('Player not found with this CNIC');
+  }
+  return player;
+};
 
 // ✅ Add Player Service
 export const addPlayer = async (
@@ -57,7 +67,7 @@ export const getPlayersByClub = async (clubId: string, assignedFilter?: 'assigne
 
   // ✅ Find all players and populate team names dynamically
   const players = await Player.find(filter)
-    .select('name fitness_category gender age assigned_team cnic team') // ✅ Only needed fields
+    .select('name fitness_category gender age assigned_team cnic team bib_number') // ✅ Only needed fields
     .populate<{ team: { team_name: string } | null }>({
       path: 'team',
       select: 'team_name', // ✅ Only fetch team_name field
@@ -82,4 +92,19 @@ export const getPlayersByClub = async (clubId: string, assignedFilter?: 'assigne
   }));
 
   return formattedPlayers;
+};
+
+
+// ✅ Edit Player Service (Now Uses CNIC Instead of ID)
+export const editPlayer = async (playerCnic: string, updates: Partial<IPlayer>) => {
+  const player = await findPlayerByCnic(playerCnic); // ✅ Now Using CNIC Search
+
+  if (Object.keys(updates).length === 0) {
+    throw new BadRequestError('No valid fields provided for update');
+  }
+
+  Object.assign(player, updates);
+  await player.save();
+
+  return player;
 };
