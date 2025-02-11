@@ -87,6 +87,7 @@ export const getPlayersByClub = async (clubId: string, assignedFilter?: 'assigne
     fitness_category: player.fitness_category,
     gender: player.gender,
     age: player.age,
+    bib_number: player.bib_number,
     assigned_team: player.assigned_team,
     ...(player.team && player.team.team_name ? { assigned_team_name: player.team.team_name } : {}), // ✅ Safely handle team_name
   }));
