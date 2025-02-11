@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { addPlayer, editPlayer, getPlayersByClub } from '../services/playerService';
+import { addPlayer, editPlayer, findPlayerByCnic, getPlayersByClub } from '../services/playerService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
@@ -52,6 +52,24 @@ export const getPlayers = asyncWrapper(async (req: AuthenticatedRequest, res: Re
     return new SuccessResponse(players, 'Players retrieved successfully');
   });
 
+// ✅ Get Players Controller (Using JWT to Identify Club)
+export const getSinglePlayers = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  // ✅ Extract clubId from JWT token
+  if (!req.club?.id) {
+    throw new Error('Club authentication failed');
+  }
+
+  const { playerCnic } = req.params; // ✅ Player cnic from request params
+  if (!playerCnic) {
+    throw new BadRequestError('Player ID is required');
+  }
+
+  // ✅ Fetch players of the authenticated club
+  const players = await findPlayerByCnic(playerCnic);
+
+  return new SuccessResponse(players, 'Player retrieved successfully');
+});
+
   // ✅ Edit Player Controller
 export const updatePlayer = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   const { playerCnic } = req.params; // ✅ Player cnic from request params
@@ -65,3 +83,5 @@ export const updatePlayer = asyncWrapper(async (req: AuthenticatedRequest, res: 
 
   return new SuccessResponse(updatedPlayer, 'Player updated successfully');
 });
+
+
