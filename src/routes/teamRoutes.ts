@@ -1,6 +1,7 @@
 import express from 'express';
-import { addNewTeam, getTeams } from '../controllers/teameController';
+import { addNewTeam, getTeams, updateTeam, uploadTeamPaymentSlip } from '../controllers/teameController';
 import { protect } from '../middleware/authMiddleware';
+
 
 const teamRouter = express.Router();
 
@@ -8,5 +9,11 @@ const teamRouter = express.Router();
 teamRouter.post('/add', protect, addNewTeam);
 // ✅ Route to Get Teams (Authenticated Club Required)
 teamRouter.get('/all', protect, getTeams);
+
+// ✅ Upload Payment Slip API (Protected)
+teamRouter.post('/upload-payment-slip', protect, uploadTeamPaymentSlip);
+
+// ✅ Route to Update Team Details (Authenticated Club Required)
+teamRouter.put('/update', protect, updateTeam);
 
 export default teamRouter;

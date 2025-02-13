@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { addTeam, getTeamsByClub } from '../services/teamsService';
+import { addTeam, getTeamsByClub, updateTeamDetails, uploadPaymentSlip } from '../services/teamsService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
@@ -42,3 +42,39 @@ export const getTeams = asyncWrapper(async (req: AuthenticatedRequest, res: Resp
   
     return new SuccessResponse(teams, 'Teams retrieved successfully');
   });
+
+
+// ✅ Upload Payment Slip Controller
+export const uploadTeamPaymentSlip = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  // ✅ Extract `clubId` from JWT token
+  if (!req.club?.id) {
+    throw new Error('Club authentication failed');
+  }
+  const clubId = req.club.id;
+
+  const { team_name, payment_comment } = req.body;
+  const file = req.files?.payment_slip; // ✅ Get Uploaded file
+
+  const updatedTeam = await uploadPaymentSlip(clubId, team_name, file, payment_comment);
+
+  return new SuccessResponse(updatedTeam, 'Payment slip uploaded successfully');
+});
+
+
+// ✅ Update Team Controller
+export const updateTeam = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.club?.id) {
+    throw new BadRequestError('Club authentication failed');
+  }
+  const clubId = req.club.id;
+
+  const { current_team_name, team_name, description, payment_status } = req.body;
+
+  if (!current_team_name) {
+    throw new BadRequestError('Current team name is required to update the team');
+  }
+
+  const updatedTeam = await updateTeamDetails(clubId, current_team_name, { team_name, description, payment_status });
+
+  return new SuccessResponse(updatedTeam, 'Team updated successfully');
+});

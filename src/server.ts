@@ -5,6 +5,7 @@ import connectDB from './config/db';
 import clubRoutes from './routes/clubRoutes';
 import ErrorHandler from './utils/errorHandler';
 import playerRouter from './routes/playerRoutes';
+import fileUpload from 'express-fileupload'; 
 import teamRouter from './routes/teamRoutes';
 import relationRouter from './routes/PlayerTeamsRealtionRoutes';
 
@@ -23,6 +24,16 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+app.use(
+    fileUpload({
+      useTempFiles: true,
+      tempFileDir: '/tmp/', //  Temporary folder for storing files before Cloudinary upload
+    })
+  );
+
+app.get('/', (req, res) => {
+    res.send('Hello, PCL Backend!');
+})
 // Routes
 app.use('/api/clubs', clubRoutes);
 app.use('/api/players', playerRouter);
@@ -33,5 +44,5 @@ app.use('/api/relation', relationRouter);
 // Global Error Handler
 app.use(ErrorHandler.handle());
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

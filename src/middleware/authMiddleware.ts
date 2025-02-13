@@ -7,7 +7,10 @@ interface AuthenticatedRequest extends Request {
   club?: {
     id: string;
     club_name: string;
+  
   };
+  
+  files?: any; // ✅ Added files property to support file uploads
 }
 
 const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
