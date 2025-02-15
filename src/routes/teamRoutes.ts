@@ -1,5 +1,5 @@
 import express from 'express';
-import { addNewTeam, getTeams, updateTeam, uploadTeamPaymentSlip } from '../controllers/teameController';
+import { addNewTeam, deleteTeamController, getTeams, updateTeam, uploadTeamPaymentSlip } from '../controllers/teameController';
 import { protect } from '../middleware/authMiddleware';
 
 
@@ -15,5 +15,8 @@ teamRouter.post('/upload-payment-slip', protect, uploadTeamPaymentSlip);
 
 // ✅ Route to Update Team Details (Authenticated Club Required)
 teamRouter.put('/update', protect, updateTeam);
+
+// ✅ Delete Team Route (Protected)
+teamRouter.delete('/delete', protect, deleteTeamController);
 
 export default teamRouter;

@@ -109,3 +109,54 @@ export const editPlayer = async (playerCnic: string, updates: Partial<IPlayer>) 
 
   return player;
 };
+
+
+// ✅ Get Players by Club (Filtered & Searchable)
+export const getFilteredAndSearchedPlayers = async (
+  clubId: string,
+  assignedStatus?: 'assigned' | 'unassigned',
+  searchTerm?: string
+) => {
+  let filter: any = { club: clubId };
+
+  // ✅ Filter players by assigned/unassigned status
+  if (assignedStatus) {
+    filter.assigned_team = assignedStatus;
+  }
+
+  // ✅ Apply Search Filters (Only When Search Term is Provided)
+  if (searchTerm) {
+    filter.$or = [
+      { name: { $regex: `^${searchTerm}$`, $options: 'i' } }, // ✅ Exact match for name (case-insensitive)
+      { cnic: searchTerm }, // ✅ Exact match for CNIC
+      { bib_number: !isNaN(Number(searchTerm)) ? Number(searchTerm) : undefined }, // ✅ Exact match for bib number
+    ].filter(Boolean); // ✅ Remove undefined conditions
+  }
+
+  // ✅ Fetch Players
+  const players = await Player.find(filter)
+    .select('name cnic fitness_category gender age assigned_team bib_number team')
+    .populate<{ team: { team_name: string } | null }>({
+      path: 'team',
+      select: 'team_name',
+    })
+    .lean();
+
+  // ✅ If no players found, return empty array instead of an error
+  if (!players || players.length === 0) {
+    return [];
+  }
+
+  // ✅ Map response to include team name
+  return players.map((player) => ({
+    _id: player._id,
+    name: player.name,
+    cnic: player.cnic,
+    fitness_category: player.fitness_category,
+    gender: player.gender,
+    age: player.age,
+    bib_number: player.bib_number,
+    assigned_team: player.assigned_team,
+    ...(player.team && player.team.team_name ? { assigned_team_name: player.team.team_name } : {}),
+  }));
+};

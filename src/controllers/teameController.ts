@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { addTeam, getTeamsByClub, updateTeamDetails, uploadPaymentSlip } from '../services/teamsService';
+import { addTeam, deleteTeam, getTeamsByClub, updateTeamDetails, uploadPaymentSlip } from '../services/teamsService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
@@ -77,4 +77,21 @@ export const updateTeam = asyncWrapper(async (req: AuthenticatedRequest, res: Re
   const updatedTeam = await updateTeamDetails(clubId, current_team_name, { team_name, description, payment_status });
 
   return new SuccessResponse(updatedTeam, 'Team updated successfully');
+});
+
+// ✅ Delete Team Controller (Using JWT to get Club ID)
+export const deleteTeamController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  // ✅ Extract club ID from JWT
+  if (!req.club?.id) {
+    throw new Error('Club authentication failed');
+  }
+  const clubId = req.club.id;
+
+  const { team_name } = req.body;
+  if (!team_name) {
+    throw new Error('Team name is required');
+  }
+
+  const result = await deleteTeam(clubId, team_name);
+  return new SuccessResponse(result, 'Team deleted successfully');
 });

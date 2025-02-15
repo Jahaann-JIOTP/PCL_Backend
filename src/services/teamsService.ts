@@ -2,6 +2,7 @@ import Team from '../models/teams';
 import Club from '../models/Club';
 import cloudinary from '../config/cloudinary';
 import { BadRequestError } from '../utils/apiError';
+import players from '../models/players';
 
 // Add Team Service
 export const addTeam = async (team_name: string, team_type: 'mix' | 'women-only', description: string, clubId: string) => {
@@ -118,4 +119,74 @@ export const updateTeamDetails = async (
   }
 
   return updatedTeam;
+};
+
+
+// // ✅ Delete Team Service
+// export const deleteTeam = async (clubId: string, teamName: string) => {
+//   // ✅ Find the team in the database
+//   const team = await Team.findOne({ team_name: teamName, club: clubId });
+//   if (!team) {
+//     throw new BadRequestError('Team not found or does not belong to your club');
+//   }
+
+//   // ✅ Check if any players are assigned to this team
+//   const assignedPlayers = await players.find({ team: team._id }).select('name cnic');
+//   if (assignedPlayers.length > 0) {
+//     throw new BadRequestError(
+//       `This team has assigned players. Please unassign them before deleting.\nPlayers: ${JSON.stringify(assignedPlayers)}`,
+//     );
+//   }
+
+//   // ✅ If a payment slip exists, delete it from Cloudinary
+//   if (team.payment_slip_url) {
+//     const publicId = team.payment_slip_url.split('/').pop()?.split('.')[0]; // Extract Cloudinary Public ID
+//     if (publicId) {
+//       await cloudinary.uploader.destroy(publicId);
+//     }
+//   }
+
+//   // ✅ Remove the team reference from the Club document
+//   await Club.findByIdAndUpdate(clubId, { $pull: { teams: team._id } });
+
+//   // ✅ Delete the team
+//   await Team.findByIdAndDelete(team._id);
+
+//   return { message: 'Team deleted successfully' };
+// };
+
+
+// ✅ Delete Team Service
+export const deleteTeam = async (clubId: string, teamName: string) => {
+  // ✅ Find the team in the database
+  const team = await Team.findOne({ team_name: teamName, club: clubId });
+  if (!team) {
+    throw new BadRequestError('Team not found or does not belong to your club');
+  }
+
+  // ✅ Check if any players are assigned to this team
+  const assignedPlayers = await players.find({ team: team._id }).select('name cnic');
+
+  if (assignedPlayers.length > 0) {
+    throw new BadRequestError([
+      { message: 'This team has assigned players. Please unassign them before deleting.' },
+      ...assignedPlayers.map(player => ({ name: player.name, cnic: player.cnic }))
+    ]);
+  }
+
+  // ✅ If a payment slip exists, delete it from Cloudinary
+  if (team.payment_slip_url) {
+    const publicId = team.payment_slip_url.split('/').pop()?.split('.')[0]; // Extract Cloudinary Public ID
+    if (publicId) {
+      await cloudinary.uploader.destroy(publicId);
+    }
+  }
+
+  // ✅ Remove the team reference from the Club document
+  await Club.findByIdAndUpdate(clubId, { $pull: { teams: team._id } });
+
+  // ✅ Delete the team
+  await Team.findByIdAndDelete(team._id);
+
+  return { message: 'Team deleted successfully' };
 };

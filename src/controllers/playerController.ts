@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { addPlayer, editPlayer, findPlayerByCnic, getPlayersByClub } from '../services/playerService';
+import { addPlayer, editPlayer, findPlayerByCnic, getFilteredAndSearchedPlayers, getPlayersByClub } from '../services/playerService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
@@ -82,6 +82,22 @@ export const updatePlayer = asyncWrapper(async (req: AuthenticatedRequest, res: 
   const updatedPlayer = await editPlayer(playerCnic, updates);
 
   return new SuccessResponse(updatedPlayer, 'Player updated successfully');
+});
+
+// ✅ Get Players by Filter or Search
+export const getFilteredPlayers = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.club?.id) {
+    throw new BadRequestError('Club authentication failed');
+  }
+  const clubId = req.club.id;
+
+  // ✅ Extract Query Params
+  const { assigned_team, search } = req.query as { assigned_team?: 'assigned' | 'unassigned'; search?: string };
+
+  // ✅ Fetch Filtered & Searched Players
+  const players = await getFilteredAndSearchedPlayers(clubId, assigned_team, search);
+
+  return new SuccessResponse(players, 'Players retrieved successfully');
 });
 
 
