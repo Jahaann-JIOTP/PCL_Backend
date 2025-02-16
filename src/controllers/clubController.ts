@@ -5,19 +5,19 @@ import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
-// ✅ Register the Club Controller (Now Includes `teams`)
+//  Register the Club Controller (Now Includes `teams`)
 export const registerClub = asyncWrapper(async (req: Request, res: Response) => {
-  const { name, description, phoneNumber, club_name, address, password } = req.body;
+  const { name, description, phoneNumber, club_name, address, password, role } = req.body;
 
   if (!name || !description || !phoneNumber || !club_name || !password) {
     throw new BadRequestError('All required fields must be provided');
   }
 
-  const club = await createClub(name, description, phoneNumber, club_name, address, password);
+  const club = await createClub(name, description, phoneNumber, club_name, address, password, role);
   return new SuccessResponse(club, 'Club registered successfully');
 });
 
-// ✅ Login the Club Controller (Now Includes `teams`)
+//  Login the Club Controller (Now Includes `teams`)
 export const clubLogin = asyncWrapper(async (req: Request, res: Response) => {
   const { username, password } = req.body;
 
@@ -30,9 +30,9 @@ export const clubLogin = asyncWrapper(async (req: Request, res: Response) => {
   return new SuccessResponse(loginData, 'Login successful');
 });
 
-// ✅ Get Club Profile (Now Returns Teams Associated with Club)
+//  Get Club Profile (Now Returns Teams Associated with Club)
 
-// ✅ Get Club Profile Controller
+//  Get Club Profile Controller
 export const getProfile = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   if (!req.club?.id) {
     throw new BadRequestError('Club authentication failed');
@@ -43,12 +43,12 @@ export const getProfile = asyncWrapper(async (req: AuthenticatedRequest, res: Re
   return new SuccessResponse(clubProfile, 'Club profile retrieved successfully');
 });
 
-// ✅ Logout Club (No Changes Required)
+//  Logout Club (No Changes Required)
 export const logoutClub = asyncWrapper(async (req: Request, res: Response) => {
   return new SuccessResponse({}, 'Logged out successfully');
 });
 
-// ✅ Reset Password Controller (No Changes Required)
+//  Reset Password Controller (No Changes Required)
 export const restPassword = asyncWrapper(async (req: Request, res: Response) => {
   const { club_name, password } = req.body;
 

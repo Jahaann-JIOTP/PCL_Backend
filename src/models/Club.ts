@@ -1,5 +1,5 @@
-// import mongoose, { Document, Schema } from 'mongoose';
-// import bcrypt from 'bcryptjs';
+import mongoose, { Document, Schema } from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 // interface IClub extends Document {
 //   name: string;
@@ -8,8 +8,9 @@
 //   club_name: string;
 //   password: string;
 //   address: string;
-//   username: string;  // ✅ Added username
-//   reset_password: boolean;  // ✅ Track if password is reset
+//   username: string;  //  Unique username
+//   reset_password: boolean;  //  Track if password is reset
+//   teams: mongoose.Schema.Types.ObjectId[];  //  Reference to Teams
 //   matchPassword(enteredPassword: string): Promise<boolean>;
 // }
 
@@ -25,8 +26,9 @@
 //     club_name: { type: String, required: true, unique: true, trim: true },
 //     address: { type: String, trim: true },
 //     password: { type: String, required: true },
-//     username: { type: String, required: true, unique: true, lowercase: true },  // ✅ Unique username, lowercase for case-insensitive search
-//     reset_password: { type: Boolean, default: false },  // ✅ Default false for first login
+//     username: { type: String, required: true, unique: true, lowercase: true },
+//     reset_password: { type: Boolean, default: false },
+//     teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],  //  New field linking to teams
 //   },
 //   { timestamps: true },
 // );
@@ -46,8 +48,6 @@
 
 // export default mongoose.model<IClub>('Club', ClubSchema);
 
-import mongoose, { Document, Schema } from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 interface IClub extends Document {
   name: string;
@@ -56,9 +56,10 @@ interface IClub extends Document {
   club_name: string;
   password: string;
   address: string;
-  username: string;  // ✅ Unique username
-  reset_password: boolean;  // ✅ Track if password is reset
-  teams: mongoose.Schema.Types.ObjectId[];  // ✅ Reference to Teams
+  username: string;  //  Unique username
+  reset_password: boolean;  //  Track if password is reset
+  teams: mongoose.Schema.Types.ObjectId[];  //  Reference to Teams
+  role?: 'admin' | 'club'; //  New role field (Default: 'club')
   matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
@@ -76,7 +77,8 @@ const ClubSchema = new Schema<IClub>(
     password: { type: String, required: true },
     username: { type: String, required: true, unique: true, lowercase: true },
     reset_password: { type: Boolean, default: false },
-    teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],  // ✅ New field linking to teams
+    teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }], 
+    role: { type: String, enum: ['admin', 'club'], default: 'club' }, //  New role field
   },
   { timestamps: true },
 );
