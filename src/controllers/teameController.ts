@@ -92,6 +92,7 @@ export const deleteTeamController = asyncWrapper(async (req: AuthenticatedReques
     throw new Error('Team name is required');
   }
 
+   // test comment
   const result = await deleteTeam(clubId, team_name);
   return new SuccessResponse(result, 'Team deleted successfully');
 });
