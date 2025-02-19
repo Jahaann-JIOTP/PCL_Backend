@@ -5,11 +5,11 @@ import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
-// ✅ Add Team Controller (Uses JWT to Identify Club)
+//  Add Team Controller (Uses JWT to Identify Club)
 export const addNewTeam = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   const { team_name, team_type, description } = req.body;
 
-  // ✅ Ensure the JWT token contains club information
+  //  Ensure the JWT token contains club information
   if (!req.club?.id) {
     throw new BadRequestError('Club authentication failed');
   }
@@ -26,34 +26,34 @@ export const addNewTeam = asyncWrapper(async (req: AuthenticatedRequest, res: Re
 });
 
 
-// ✅ Get Teams Controller (Using JWT to Identify Club)
+//  Get Teams Controller (Using JWT to Identify Club)
 export const getTeams = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
-    // ✅ Extract clubId from JWT token
+    //  Extract clubId from JWT token
     if (!req.club?.id) {
       throw new Error('Club authentication failed');
     }
     const clubId = req.club.id;
   
-    // ✅ Extract team_type from query parameters
+    //  Extract team_type from query parameters
     const { team_type } = req.query as { team_type?: 'mix' | 'women-only' };
   
-    // ✅ Fetch teams of the authenticated club
+    //  Fetch teams of the authenticated club
     const teams = await getTeamsByClub(clubId, team_type);
   
     return new SuccessResponse(teams, 'Teams retrieved successfully');
   });
 
 
-// ✅ Upload Payment Slip Controller
+//  Upload Payment Slip Controller
 export const uploadTeamPaymentSlip = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
-  // ✅ Extract `clubId` from JWT token
+  //  Extract `clubId` from JWT token
   if (!req.club?.id) {
     throw new Error('Club authentication failed');
   }
   const clubId = req.club.id;
 
   const { team_name, payment_comment } = req.body;
-  const file = req.files?.payment_slip; // ✅ Get Uploaded file
+  const file = req.files?.payment_slip; //  Get Uploaded file
 
   const updatedTeam = await uploadPaymentSlip(clubId, team_name, file, payment_comment);
 
@@ -61,7 +61,7 @@ export const uploadTeamPaymentSlip = asyncWrapper(async (req: AuthenticatedReque
 });
 
 
-// ✅ Update Team Controller
+//  Update Team Controller
 export const updateTeam = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   if (!req.club?.id) {
     throw new BadRequestError('Club authentication failed');
@@ -79,9 +79,9 @@ export const updateTeam = asyncWrapper(async (req: AuthenticatedRequest, res: Re
   return new SuccessResponse(updatedTeam, 'Team updated successfully');
 });
 
-// ✅ Delete Team Controller (Using JWT to get Club ID)
+//  Delete Team Controller (Using JWT to get Club ID)
 export const deleteTeamController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
-  // ✅ Extract club ID from JWT
+  //  Extract club ID from JWT
   if (!req.club?.id) {
     throw new Error('Club authentication failed');
   }

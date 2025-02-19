@@ -3,29 +3,29 @@ import Player from '../models/players';
 import Team from '../models/teams';
 import { BadRequestError } from '../utils/apiError';
 
-// ✅ Assign Multiple Players to a Team
+//  Assign Multiple Players to a Team
 export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamName: string, clubId: string) => {
-  // ✅ Check if the team exists
+  //  Check if the team exists
   const team = await Team.findOne({ team_name: teamName, club: clubId });
   if (!team) {
     throw new BadRequestError('Team not found or does not belong to your club');
   }
 
-  // ✅ Get all players by CNICs
+  //  Get all players by CNICs
   const players = await Player.find({ cnic: { $in: playerCnics }, club: clubId });
 
-  // ✅ Identify missing players
+  //  Identify missing players
   const foundCnics = players.map((p) => p.cnic);
   const missingPlayers = playerCnics.filter((cnic) => !foundCnics.includes(cnic));
 
-  // ✅ Identify already assigned players
+  //  Identify already assigned players
   const alreadyAssigned = players.filter((p) => p.team);
   const alreadyAssignedCnics = alreadyAssigned.map((p) => p.cnic);
 
-  // ✅ Remove already assigned players from processing
+  //  Remove already assigned players from processing
   const playersToAssign = players.filter((p) => !p.team);
 
-  // ✅ Check if adding players exceeds team limit
+  //  Check if adding players exceeds team limit
   const teamSize = team.players?.length || 0;
   const newTotal = teamSize + playersToAssign.length;
 
@@ -36,7 +36,7 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
     throw new BadRequestError(`A women-only team cannot have more than 6 players. Available slots: ${6 - teamSize}`);
   }
 
-  // ✅ Assign all valid players to the team
+  //  Assign all valid players to the team
   const playerIds = playersToAssign.map((p) => p._id);
 
   await Player.updateMany(
@@ -50,7 +50,7 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
     },
   );
 
-  // ✅ Add players to the team's player list
+  //  Add players to the team's player list
   await Team.findByIdAndUpdate(team._id, { $push: { players: { $each: playerIds } } });
 
   return {
@@ -61,41 +61,41 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
   };
 };
 
-// // ✅ Fetch Players Based on Query Params
+// //  Fetch Players Based on Query Params
 // export const getPlayersByFilter = async (
 //   clubId: string,
 //   teamName?: string,
 //   assignedStatus?: 'assigned' | 'unassigned',
-//   teamType?: 'mix' | 'women-only' // ✅ Added teamType filter
+//   teamType?: 'mix' | 'women-only' //  Added teamType filter
 // ) => {
 //   let filter: any = { club: clubId };
 
-//   // ✅ If team_name is provided, get players of that team
+//   //  If team_name is provided, get players of that team
 //   if (teamName) {
 //     const team = await Team.findOne({ team_name: teamName, club: clubId });
 //     if (!team) {
 //       throw new BadRequestError('Team not found or does not belong to your club');
 //     }
 //     filter.team = team._id;
-//     filter.assigned_team = 'assigned'; // ✅ Ensure only assigned players
+//     filter.assigned_team = 'assigned'; //  Ensure only assigned players
 //   }
 
-//   // ✅ If assigned_team=unassigned is provided, fetch only unassigned players
+//   //  If assigned_team=unassigned is provided, fetch only unassigned players
 //   if (assignedStatus === 'unassigned') {
 //     filter.assigned_team = 'unassigned';
 //     filter.assigned_team_name = null;
 
-//     // ✅ Apply gender-based filter **ONLY** when `teamType=women-only`
+//     //  Apply gender-based filter **ONLY** when `teamType=women-only`
 //     if (teamType === 'women-only') {
-//       filter.gender = 'female'; // ✅ Ensure only female players appear
+//       filter.gender = 'female'; //  Ensure only female players appear
 //     } else if (teamType === 'mix') {
-//       filter.gender = { $in: ['male', 'female'] }; // ✅ Ensure both genders appear in `mix`
+//       filter.gender = { $in: ['male', 'female'] }; //  Ensure both genders appear in `mix`
 //     }
 //   }
 
-//   console.log("Applying filter: ", filter); // ✅ Debugging
+//   console.log("Applying filter: ", filter); //  Debugging
 
-//   // ✅ Fetch players based on the filter
+//   //  Fetch players based on the filter
 //   const players = await Player.find(filter)
 //     .select('name cnic gender assigned_team assigned_team_name age contact')
 //     .lean();
@@ -107,33 +107,33 @@ export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamNam
 //   return players;
 // };
 
-// // ✅ Fetch Players Based on Query Params   - changed Params
+// //  Fetch Players Based on Query Params   - changed Params
 export const getPlayersByFilter = async (
   clubId: string,
   teamName?: string,
   assignedStatus?: 'assigned' | 'unassigned',
-  teamTypeKey?: string, // ✅ Changed from `teamType` to `teamTypeKey`
+  teamTypeKey?: string, //  Changed from `teamType` to `teamTypeKey`
 ) => {
   let filter: any = { club: clubId };
 
-  // ✅ If teamName is provided, get players of that specific team
+  //  If teamName is provided, get players of that specific team
   if (teamName) {
     const team = await Team.findOne({ team_name: teamName, club: clubId });
     if (!team) {
       throw new BadRequestError('Team not found or does not belong to your club');
     }
     filter.team = team._id;
-    filter.assigned_team = 'assigned'; // ✅ Ensure only assigned players
+    filter.assigned_team = 'assigned'; //  Ensure only assigned players
   }
 
-  // ✅ Fetch Unassigned Players Before Gender Filtering
+  //  Fetch Unassigned Players Before Gender Filtering
   if (assignedStatus === 'unassigned') {
     filter.assigned_team = 'unassigned';
     filter.assigned_team_name = null;
 
-    // ✅ Fetch Players Before Gender Filtering
+    //  Fetch Players Before Gender Filtering
     const allUnassignedPlayers = await Player.find(filter).lean();
-    console.log('✅ All Unassigned Players: ', allUnassignedPlayers);
+    console.log(' All Unassigned Players: ', allUnassignedPlayers);
 
     if (teamTypeKey) {
       const team = await Team.findOne({ team_name: teamTypeKey, club: clubId });
@@ -144,7 +144,7 @@ export const getPlayersByFilter = async (
 
       const teamType = team.team_type;
 
-      // ✅ Apply Gender-Based Filtering
+      //  Apply Gender-Based Filtering
       if (teamType === 'women-only') {
         filter.gender = 'female';
       } else if (teamType === 'mix') {
@@ -153,9 +153,9 @@ export const getPlayersByFilter = async (
     }
   }
 
-  // console.log('Applying filter: ', filter); // ✅ Debugging
+  // console.log('Applying filter: ', filter); //  Debugging
 
-  // ✅ Fetch players based on the filter
+  //  Fetch players based on the filter
   const players = await Player.find(filter).select('name cnic gender assigned_team age contact fitness_category bib_number').lean();
   // console.log(players);
 
@@ -166,48 +166,48 @@ export const getPlayersByFilter = async (
   return players;
 };
 
-// ✅ Unassign a Player from a Team
+//  Unassign a Player from a Team
 export const unassignPlayerFromTeam = async (playerCnic: string, clubId: string) => {
-  // ✅ Find player by CNIC & Club
+  //  Find player by CNIC & Club
   const player = await Player.findOne({ cnic: playerCnic, club: clubId });
   if (!player) {
     throw new BadRequestError('Player not found or does not belong to your club');
   }
 
-  // ✅ Check if the player is already unassigned
+  //  Check if the player is already unassigned
   if (!player.team) {
     throw new BadRequestError('Player is already unassigned');
   }
 
-  // ✅ Find the team where the player was assigned
+  //  Find the team where the player was assigned
   const team = await Team.findById(player.team);
   if (!team) {
     throw new BadRequestError('Team not found');
   }
 
-  // ✅ Remove the player from the team's players array
+  //  Remove the player from the team's players array
   await Team.findByIdAndUpdate(team._id, { $pull: { players: player._id } });
 
-  // ✅ Reset the player’s team details
+  //  Reset the player’s team details
   player.team = undefined;
   player.assigned_team = 'unassigned';
   // player.assigned_team_name = undefined;
 
-  // ✅ Save the updated player
+  //  Save the updated player
   await player.save();
 
   return { message: 'Player unassigned successfully', player };
 };
 
-// ✅ Check if the player is assigned to a team before deletion
+//  Check if the player is assigned to a team before deletion
 export const checkPlayerAssignment = async (playerCnic: string, clubId: string) => {
-  // ✅ Find the player by CNIC and Club ID
+  //  Find the player by CNIC and Club ID
   const player = await Player.findOne({ cnic: playerCnic, club: clubId });
   if (!player) {
     throw new BadRequestError('Player not found or does not belong to your club');
   }
 
-  // ✅ If the player is assigned to a team, return details
+  //  If the player is assigned to a team, return details
   if (player.team) {
     const team = await Team.findById(player.team);
     return {
@@ -221,20 +221,20 @@ export const checkPlayerAssignment = async (playerCnic: string, clubId: string) 
     };
   }
 
-  // ✅ Player is unassigned and can be deleted
+  //  Player is unassigned and can be deleted
   return { assigned: false, message: 'Player is unassigned and can be deleted' };
 };
 
-// ✅ Delete Player Service
+//  Delete Player Service
 export const deletePlayerService = async (playerCnic: string, clubId: string) => {
-  // ✅ Find the player by CNIC and club
+  //  Find the player by CNIC and club
   const player = await Player.findOne({ cnic: playerCnic, club: clubId });
 
   if (!player) {
     throw new BadRequestError('Player not found in your club');
   }
 
-  // ✅ Check if the player is assigned to a team
+  //  Check if the player is assigned to a team
   if (player.team) {
     const team = await Team.findById(player.team);
     if (team) {
@@ -245,7 +245,7 @@ export const deletePlayerService = async (playerCnic: string, clubId: string) =>
     }
   }
 
-  // ✅ If unassigned, delete the player
+  //  If unassigned, delete the player
   await Player.findByIdAndDelete(player._id);
 
   return {

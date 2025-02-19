@@ -10,7 +10,7 @@ const connectDB = async (): Promise<void> => {
       useNewUrlParser: true,
       useUnifiedTopology: true
     } as mongoose.ConnectOptions);
-    console.log(`✅ Connected to MongoDB Atlas Database: ${mongoose.connection.db.databaseName}`);
+    console.log(` Connected to MongoDB Atlas Database: ${mongoose.connection.db.databaseName}`);
   } catch (error) {
     console.error('❌ MongoDB Connection Failed:', error);
     process.exit(1);
@@ -37,7 +37,7 @@ export default connectDB;
 //       authSource: "iotdb", // Ensure auth source is correct
 //     } as mongoose.ConnectOptions);
 
-//     console.log('✅ MongoDB Connected to iotdb');
+//     console.log(' MongoDB Connected to iotdb');
 //   } catch (error) {
 //     console.error('❌ MongoDB Connection Failed:', error);
 //     process.exit(1);

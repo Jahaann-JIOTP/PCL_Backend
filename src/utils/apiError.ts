@@ -29,23 +29,23 @@ export class NotFoundError extends ApiError {
   }
 }
 
-// ✅ BadRequestError Now Supports Both Strings & Arrays & Objects
+//  BadRequestError Now Supports Both Strings & Arrays & Objects
 export class BadRequestError extends ApiError {
   constructor(message: string | string[] | object[], errors?: string[], statusCode: number = StatusCodes.BAD_REQUEST) {
     let formattedMessage: string;
 
     if (Array.isArray(message)) {
       if (typeof message[0] === 'object') {
-        // ✅ Convert array of objects into readable strings
+        //  Convert array of objects into readable strings
         formattedMessage = message
           .map(obj => Object.values(obj).join(' - ')) // Convert objects to readable strings
           .join('\n'); // New line separated format
       } else {
-        // ✅ Join string array with new lines
+        //  Join string array with new lines
         formattedMessage = message.join('\n');
       }
     } else if (typeof message === 'object') {
-      // ✅ Handle single object case
+      //  Handle single object case
       formattedMessage = Object.values(message).join(' - ');
     } else {
       formattedMessage = message;

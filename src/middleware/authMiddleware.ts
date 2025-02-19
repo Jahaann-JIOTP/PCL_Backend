@@ -43,7 +43,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { UnauthorizedError } from '../utils/apiError';
 
-// ✅ Define an extended interface for Express Request
+//  Define an extended interface for Express Request
 interface AuthenticatedRequest extends Request {
   club?: {
     id: string;
@@ -53,7 +53,7 @@ interface AuthenticatedRequest extends Request {
   files?: any;
 }
 
-// ✅ Middleware to Protect Routes (Extracts JWT Token)
+//  Middleware to Protect Routes (Extracts JWT Token)
 const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   let token;
 
@@ -70,7 +70,7 @@ const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunct
     req.club = {
       id: decoded.id,
       club_name: decoded.club_name,
-      role: decoded.role || 'club', // ✅ Default role is 'club'
+      role: decoded.role || 'club', //  Default role is 'club'
     };
 
     next();
@@ -79,7 +79,7 @@ const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunct
   }
 };
 
-// ✅ Middleware to Restrict Access to Admins Only
+//  Middleware to Restrict Access to Admins Only
 const adminOnly = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   if (!req.club || req.club.role !== 'admin') {
     throw new UnauthorizedError('Access denied! Admins only');

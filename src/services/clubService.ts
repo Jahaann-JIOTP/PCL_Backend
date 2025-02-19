@@ -68,7 +68,7 @@ export const createClub = async (
 //     // teams: club.teams,  //  Return associated teams
 //   };
 // };
-// ✅ Login Club Service
+//  Login Club Service
 export const loginClub = async (username: string, password: string) => {
   console.log("🔍 Checking club existence...");
   const club = await Club.findOne({ username });
@@ -79,7 +79,7 @@ export const loginClub = async (username: string, password: string) => {
 
   console.log("🟢 Club found:", club);
 
-  // ✅ Verify Password
+  //  Verify Password
   const isPasswordValid = await club.matchPassword(password);
   if (!isPasswordValid) {
     throw new UnauthorizedError('Invalid credentials');
@@ -87,7 +87,7 @@ export const loginClub = async (username: string, password: string) => {
 
   console.log("🔑 Password matched!");
 
-  // ✅ Generate JWT Token with Role (Defaults to 'club' if role is missing)
+  //  Generate JWT Token with Role (Defaults to 'club' if role is missing)
   const token = generateToken(club._id.toString(), club.username, club.role || 'club');
 
   return {
@@ -95,7 +95,7 @@ export const loginClub = async (username: string, password: string) => {
     reset_password: club.reset_password,
     username: club.username,
     club_name: club.club_name,
-    role: club.role || 'club', // ✅ Ensure role is returned
+    role: club.role || 'club', //  Ensure role is returned
   };
 };
 

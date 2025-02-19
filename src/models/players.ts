@@ -14,7 +14,7 @@ export interface IPlayer extends Document {
   assigned_team: 'assigned' | 'unassigned';
   club: mongoose.Schema.Types.ObjectId;
   team?: mongoose.Schema.Types.ObjectId;
-  bib_number?: number | null; // ✅ Newly added field (optional)
+  bib_number?: number | null; //  Newly added field (optional)
 }
 
 const PlayerSchema = new Schema<IPlayer>(
@@ -39,13 +39,13 @@ const PlayerSchema = new Schema<IPlayer>(
     club: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
     team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
 
-    // ✅ Bib Number (Optional)
-    bib_number: { type: Number, default: null },
+    // ✅ Bib Number (Must Be Unique)
+    bib_number: { type: Number, unique: true, sparse: true, default: null },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-// ✅ Fix Age Calculation
+//  Fix Age Calculation
 PlayerSchema.pre<IPlayer>('validate', function (next) {
   if (this.date_of_birth) {
     const birthDate = new Date(this.date_of_birth);
@@ -63,7 +63,7 @@ PlayerSchema.pre<IPlayer>('validate', function (next) {
   next();
 });
 
-// ✅ Auto-set assigned_team status before saving
+//  Auto-set assigned_team status before saving
 PlayerSchema.pre<IPlayer>('save', function (next) {
   this.assigned_team = this.team ? 'assigned' : 'unassigned';
   next();

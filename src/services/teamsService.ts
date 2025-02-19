@@ -97,7 +97,7 @@ export const uploadPaymentSlip = async (clubId: string, teamName: string, file: 
 
 
 
-// ✅ Update Team Service
+//  Update Team Service
 export const updateTeamDetails = async (
   clubId: string,
   currentTeamName: string,
@@ -107,11 +107,11 @@ export const updateTeamDetails = async (
     throw new BadRequestError('No valid fields provided for update');
   }
 
-  // ✅ Find and update the team while ensuring it belongs to the club
+  //  Find and update the team while ensuring it belongs to the club
   const updatedTeam = await Team.findOneAndUpdate(
     { team_name: currentTeamName, club: clubId }, // Find by current name
-    { $set: updates }, // ✅ Only update provided fields
-    { new: true, runValidators: true } // ✅ Return updated team, run validation only on updated fields
+    { $set: updates }, //  Only update provided fields
+    { new: true, runValidators: true } //  Return updated team, run validation only on updated fields
   );
 
   if (!updatedTeam) {
@@ -122,15 +122,15 @@ export const updateTeamDetails = async (
 };
 
 
-// // ✅ Delete Team Service
+// //  Delete Team Service
 // export const deleteTeam = async (clubId: string, teamName: string) => {
-//   // ✅ Find the team in the database
+//   //  Find the team in the database
 //   const team = await Team.findOne({ team_name: teamName, club: clubId });
 //   if (!team) {
 //     throw new BadRequestError('Team not found or does not belong to your club');
 //   }
 
-//   // ✅ Check if any players are assigned to this team
+//   //  Check if any players are assigned to this team
 //   const assignedPlayers = await players.find({ team: team._id }).select('name cnic');
 //   if (assignedPlayers.length > 0) {
 //     throw new BadRequestError(
@@ -138,7 +138,7 @@ export const updateTeamDetails = async (
 //     );
 //   }
 
-//   // ✅ If a payment slip exists, delete it from Cloudinary
+//   //  If a payment slip exists, delete it from Cloudinary
 //   if (team.payment_slip_url) {
 //     const publicId = team.payment_slip_url.split('/').pop()?.split('.')[0]; // Extract Cloudinary Public ID
 //     if (publicId) {
@@ -146,25 +146,25 @@ export const updateTeamDetails = async (
 //     }
 //   }
 
-//   // ✅ Remove the team reference from the Club document
+//   //  Remove the team reference from the Club document
 //   await Club.findByIdAndUpdate(clubId, { $pull: { teams: team._id } });
 
-//   // ✅ Delete the team
+//   //  Delete the team
 //   await Team.findByIdAndDelete(team._id);
 
 //   return { message: 'Team deleted successfully' };
 // };
 
 
-// ✅ Delete Team Service
+//  Delete Team Service
 export const deleteTeam = async (clubId: string, teamName: string) => {
-  // ✅ Find the team in the database
+  //  Find the team in the database
   const team = await Team.findOne({ team_name: teamName, club: clubId });
   if (!team) {
     throw new BadRequestError('Team not found or does not belong to your club');
   }
 
-  // ✅ Check if any players are assigned to this team
+  //  Check if any players are assigned to this team
   const assignedPlayers = await players.find({ team: team._id }).select('name cnic');
 
   if (assignedPlayers.length > 0) {
@@ -174,7 +174,7 @@ export const deleteTeam = async (clubId: string, teamName: string) => {
     ]);
   }
 
-  // ✅ If a payment slip exists, delete it from Cloudinary
+  //  If a payment slip exists, delete it from Cloudinary
   if (team.payment_slip_url) {
     const publicId = team.payment_slip_url.split('/').pop()?.split('.')[0]; // Extract Cloudinary Public ID
     if (publicId) {
@@ -182,10 +182,10 @@ export const deleteTeam = async (clubId: string, teamName: string) => {
     }
   }
 
-  // ✅ Remove the team reference from the Club document
+  //  Remove the team reference from the Club document
   await Club.findByIdAndUpdate(clubId, { $pull: { teams: team._id } });
 
-  // ✅ Delete the team
+  //  Delete the team
   await Team.findByIdAndDelete(team._id);
 
   return { message: 'Team deleted successfully' };

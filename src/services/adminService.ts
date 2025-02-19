@@ -3,24 +3,24 @@ import Player, { IPlayer } from '../models/players';
 import Team from '../models/teams';
 import { BadRequestError, NotFoundError } from '../utils/apiError';
 
-// ✅ Get Admin Dashboard Data
+//  Get Admin Dashboard Data
 export const getAdminDashboardData = async (adminClubId: string) => {
-  // ✅ Check if the logged-in user is an Admin
+  //  Check if the logged-in user is an Admin
   const adminClub = await Club.findById(adminClubId);
   if (!adminClub) throw new BadRequestError('Admin club not found');
 
   if (adminClub.role !== 'admin') throw new BadRequestError('Unauthorized: Only admin can access this');
 
-  // ✅ Count total clubs
+  //  Count total clubs
   const totalClubs = await Club.countDocuments();
 
-  // ✅ Count total players
+  //  Count total players
   const totalPlayers = await Player.countDocuments();
 
-  // ✅ Count total teams
+  //  Count total teams
   const totalTeams = await Team.countDocuments();
 
-  // ✅ Count teams by payment status
+  //  Count teams by payment status
   const paidTeams = await Team.countDocuments({ payment_status: 'paid' });
   const unpaidTeams = await Team.countDocuments({ payment_status: 'unpaid' });
   const processingTeams = await Team.countDocuments({ payment_status: 'processing' });
@@ -31,7 +31,7 @@ export const getAdminDashboardData = async (adminClubId: string) => {
       name: adminClub.name,
       club_name: adminClub.club_name,
       phoneNumber: adminClub.phoneNumber,
-      description: adminClub.description, // ✅ Added Club Description
+      description: adminClub.description, //  Added Club Description
     },
     stats: {
       totalClubs,
@@ -44,24 +44,24 @@ export const getAdminDashboardData = async (adminClubId: string) => {
   };
 };
 
-// ✅ Get All Registered Clubs (Excluding Admin)
+//  Get All Registered Clubs (Excluding Admin)
 export const getAllClubsData = async (adminClubId: string) => {
-  // ✅ Check if the logged-in user is an Admin
+  //  Check if the logged-in user is an Admin
   const adminClub = await Club.findById(adminClubId);
   if (!adminClub) throw new BadRequestError('Admin club not found');
 
   if (adminClub.role !== 'admin') throw new BadRequestError('Unauthorized: Only admin can access this');
 
-  // ✅ Fetch all clubs except the admin club itself
+  //  Fetch all clubs except the admin club itself
   const clubs = await Club.find({ _id: { $ne: adminClubId } }).select('name club_name phoneNumber description teams');
 
-  // ✅ Fetch all teams & players data
+  //  Fetch all teams & players data
   const clubsData = await Promise.all(
     clubs.map(async (club) => {
       const totalTeams = await Team.countDocuments({ club: club._id });
       const totalPlayers = await Player.countDocuments({ club: club._id });
 
-      // ✅ Count teams by payment status
+      //  Count teams by payment status
       const paidTeams = await Team.countDocuments({ club: club._id, payment_status: 'paid' });
       const unpaidTeams = await Team.countDocuments({ club: club._id, payment_status: 'unpaid' });
       const processingTeams = await Team.countDocuments({ club: club._id, payment_status: 'processing' });
@@ -86,7 +86,7 @@ export const getAllClubsData = async (adminClubId: string) => {
   return clubsData;
 };
 
-// ✅ Define Interface for Team Data Structure
+//  Define Interface for Team Data Structure
 interface TeamData {
   name: string;
   players: Pick<IPlayer, 'name' | 'cnic' | 'assigned_team' | 'gender' | 'bib_number' | 'fitness_category'>[];
@@ -95,29 +95,29 @@ interface TeamData {
   payment_comment: string | null;
 }
 
-// ✅ Get Full Details of a Single Club (Admin Only)
+//  Get Full Details of a Single Club (Admin Only)
 export const getSingleClubDetails = async (adminId: string, club_name: string) => {
-  // ✅ Fetch the club details from MongoDB
+  //  Fetch the club details from MongoDB
   const club = await Club.findOne({ club_name }).populate('teams');
 
   if (!club) {
     throw new BadRequestError(`No club found with name: ${club_name}`);
   }
 
-  // ✅ Get all teams of the club
+  //  Get all teams of the club
   const teams = await Team.find({ club: club._id });
 
-  // ✅ Categorize teams into "mix" and "women-only"
+  //  Categorize teams into "mix" and "women-only"
   const mixTeams: TeamData[] = [];
   const womenOnlyTeams: TeamData[] = [];
 
   for (const team of teams) {
-    // ✅ Fetch players assigned to this team
+    //  Fetch players assigned to this team
     const players = await Player.find({ team: team._id })
       .select('name cnic assigned_team gender bib_number fitness_category')
       .lean();
 
-    // ✅ Structure the team data
+    //  Structure the team data
     const teamData: TeamData = {
       name: team.team_name,
       players: players.map((player) => ({
@@ -133,7 +133,7 @@ export const getSingleClubDetails = async (adminId: string, club_name: string) =
       payment_comment: team.payment_comment || null,
     };
 
-    // ✅ Categorize into "mix" or "women-only"
+    //  Categorize into "mix" or "women-only"
     if (team.team_type === 'mix') {
       mixTeams.push(teamData);
     } else {
@@ -148,8 +148,32 @@ export const getSingleClubDetails = async (adminId: string, club_name: string) =
     phoneNumber: club.phoneNumber,
     description: club.description,
     teamsByType: {
-      mix: mixTeams,
-      womenOnly: womenOnlyTeams,
+      mix : mixTeams,
+      womenOnly : womenOnlyTeams,
     },
   };
+};
+
+
+//  Admin: Update Team Payment Details
+export const updateTeamPayment = async (team_name: string, updates: { payment_status?: string; payment_comment?: string }) => {
+  //  Find the team by name
+  const team = await Team.findOne({ team_name });
+
+  if (!team) {
+    throw new BadRequestError(`Team with name '${team_name}' not found.`);
+  }
+
+  //  Ensure at least one field is provided for update
+  if (!updates.payment_status && !updates.payment_comment) {
+    throw new BadRequestError('At least one field (payment_status or payment_comment) must be provided for update.');
+  }
+
+  //  Apply updates dynamically
+  Object.assign(team, updates);
+
+  //  Save updated team
+  await team.save();
+
+  return team;
 };
