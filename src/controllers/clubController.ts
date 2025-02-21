@@ -56,7 +56,9 @@ export const restPassword = asyncWrapper(async (req: Request, res: Response) => 
     throw new Error('Club name and password are required');
   }
 
-  const resetedPassword = await resetPassword(club_name, password);
+  //  Call the resetPassword service and get the role
+  const { role } = await resetPassword(club_name, password);
 
-  return new SuccessResponse(resetedPassword, 'Password reset successful');
+  //  Return role in the response
+  return new SuccessResponse({ role }, 'Password reset successful');
 });

@@ -99,7 +99,9 @@ export const loginClub = async (username: string, password: string) => {
   };
 };
 
-//  Reset Password Service 
+
+//  Reset Password Service (Now Returns Role)
+
 export const resetPassword = async (club_name: string, newPassword: string) => {
   const club = await Club.findOne({ club_name });
   if (!club) {
@@ -110,52 +112,18 @@ export const resetPassword = async (club_name: string, newPassword: string) => {
   club.reset_password = true;
 
   await club.save();
+
+  //  Return role in response
+  return {
+    role: club.role, //  Include role in the response
+  };
 };
 
 
-//  Get Club Profile with team details including player counts
-// export const getClubProfile = async (clubId: string) => {
-//   //  Find the club and populate its teams
-//   const club = await Club.findById(clubId).populate('teams', 'team_name team_type players');
 
-//   if (!club) {
-//     throw new BadRequestError('Club not found');
-//   }
-
-//   //  Fetch all teams for this club
-//   const clubTeams = await teams.find({ club: clubId });
-
-//   //  Count teams based on type
-//   const totalTeams = clubTeams.length;
-//   const mixTeams = clubTeams.filter((team) => team.team_type === 'mix');
-//   const womenOnlyTeams = clubTeams.filter((team) => team.team_type === 'women-only');
-
-//   return {
-//     // id: club._id,
-//     name: club.name,
-//     description: club.description,
-//     phoneNumber: club.phoneNumber,
-//     club_name: club.club_name,
-//     address: club.address,
-//     username: club.username,
-//     reset_password: club.reset_password,
-//     totalTeams,
-//     mixTeamsCount: mixTeams.length,
-//     womenOnlyTeamsCount: womenOnlyTeams.length,
-//     teamsByType: {
-//       mix: mixTeams.map((team) => ({
-//         name: team.team_name,
-//         playerCount: team.players.length, 
-//       })),
-//       womenOnly: womenOnlyTeams.map((team) => ({
-//         name: team.team_name,
-//         playerCount: team.players.length, 
-//       })),
-//     },
-//   };
-// };
 
 //  Get Club Profile with team details including player counts, payment slip URL, and payment status
+
 export const getClubProfile = async (clubId: string) => {
   //  Find the club and populate its teams
   const club = await Club.findById(clubId).populate('teams', 'team_name team_type players payment_slip_url payment_status');
