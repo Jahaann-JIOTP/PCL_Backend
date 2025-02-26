@@ -14,8 +14,8 @@ eventRouter.get('/all', protect, adminOnly, getEvents);
  //Get Single Event by Name
 eventRouter.get('/single-event/:eventName', protect, adminOnly, getSingleEvent);
 
-// //  Update Event Details (Admin Only)
-// eventRouter.put('/:eventName', protect, adminOnly, updateEventDetails);
+//  Update Event Details (Admin Only)
+eventRouter.put('/edit/:eventName', protect, adminOnly, updateEventDetails);
 
 // //  Delete Event (Admin Only)
 // eventRouter.delete('/:eventName', protect, adminOnly, deleteEventController);
