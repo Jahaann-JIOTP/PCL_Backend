@@ -9,6 +9,7 @@ import fileUpload from 'express-fileupload';
 import teamRouter from './routes/teamRoutes';
 import relationRouter from './routes/PlayerTeamsRealtionRoutes';
 import adminRouter from './routes/adminRoutes';
+import raceRouter from './routes/raceRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/players', playerRouter);
 app.use('/api/teams', teamRouter);
 app.use('/api/relation', relationRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/races', raceRouter);
 
 
 
