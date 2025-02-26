@@ -8,19 +8,22 @@ export interface IRace extends Document {
   time: string;
   createdBy: mongoose.Schema.Types.ObjectId; // Admin who created it
   teams?: mongoose.Schema.Types.ObjectId[]; // Teams that join the race
+  event: mongoose.Schema.Types.ObjectId;
 }
 
 const RaceSchema = new Schema<IRace>(
   {
-    name: { type: String, required: true, unique: true, trim: true }, //  Unique Race Name
-    type: { type: String, required: true, trim: true }, //  Type of Race (Road, Time Trial, etc.)
-    distance: { type: Number, required: true }, //  Distance in KM or Miles
-    date: { type: Date, required: true }, //  Race Date
-    time: { type: String, required: true, trim: true }, //  Time (HH:MM Format)
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true }, //  Only Admins can create
-    teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }], //  Registered Teams
+    name: { type: String, required: true, unique: true, trim: true },
+    type: { type: String, required: true, trim: true },
+    distance: { type: Number, required: true },
+    date: { type: Date, required: true },
+    time: { type: String, required: true, trim: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
+    teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
+    event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true }, //  relation to Event
   },
   { timestamps: true }
 );
+
 
 export default mongoose.model<IRace>('Race', RaceSchema);
