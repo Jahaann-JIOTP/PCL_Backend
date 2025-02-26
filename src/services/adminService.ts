@@ -148,8 +148,8 @@ export const getSingleClubDetails = async (adminId: string, club_name: string) =
     phoneNumber: club.phoneNumber,
     description: club.description,
     teamsByType: {
-      mix : mixTeams,
-      womenOnly : womenOnlyTeams,
+      mix: mixTeams,
+      womenOnly: womenOnlyTeams,
     },
   };
 };

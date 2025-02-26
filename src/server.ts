@@ -23,7 +23,14 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+  origin: '*', // Allows all origins (change this for security)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+  credentials: true // Allows cookies and authentication headers if needed
+}));
+
 
 app.use(
     fileUpload({

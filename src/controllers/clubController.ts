@@ -48,7 +48,7 @@ export const logoutClub = asyncWrapper(async (req: Request, res: Response) => {
   return new SuccessResponse({}, 'Logged out successfully');
 });
 
-//  Reset Password Controller (No Changes Required)
+//  Reset Password Controller 
 export const restPassword = asyncWrapper(async (req: Request, res: Response) => {
   const { club_name, password } = req.body;
 
