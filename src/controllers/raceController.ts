@@ -3,7 +3,7 @@ import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
-import { createRace, deleteRace, getAllRaces, getRaceByName, updateRace } from '../services/raceService';
+import { createRace, deleteRace, getAllRaces, getRaceByName, getRacesByEvent, updateRace } from '../services/raceService';
 import Event from '../models/Event';
 
 // ✅ Add New Race (Admin Only)
@@ -38,12 +38,17 @@ export const getRaces = asyncWrapper(async (req: Request, res: Response) => {
   return new SuccessResponse(races, 'Races retrieved successfully');
 });
 
-// ✅ Get a Single Race by Name
-export const getSingleRace = asyncWrapper(async (req: Request, res: Response) => {
-  const { raceName } = req.params;
-  const race = await getRaceByName(raceName);
-  return new SuccessResponse(race, 'Race retrieved successfully');
+export const getEventRaces = asyncWrapper(async (req: Request, res: Response) => {
+  const { eventName } = req.params;
+
+  if (!eventName) {
+    throw new BadRequestError('Event name is required');
+  }
+
+  const races = await getRacesByEvent(eventName);
+  return new SuccessResponse(races, `Races for event ${eventName} retrieved successfully`);
 });
+
 
 // ✅ Update Race (Admin Only)
 export const updateRaceDetails = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {

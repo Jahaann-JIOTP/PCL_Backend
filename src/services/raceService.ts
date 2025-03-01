@@ -1,3 +1,4 @@
+import Event from '../models/Event';
 import Race, { IRace } from '../models/Race';
 import { BadRequestError, NotFoundError } from '../utils/apiError';
 
@@ -11,20 +12,20 @@ export const createRace = async (
   createdBy: string,
   event_id: string
 ) => {
-  // ✅ Ensure race name is unique within the same event
+  //  Ensure race name is unique within the same event
   const existingRace = await Race.findOne({ name, event: event_id });
   if (existingRace) {
     throw new BadRequestError('A race with this name already exists for this event.');
   }
 
-  // ✅ Create new race
+  //  Create new race
   const race = new Race({
     name,
     type,
     distance,
     date,
     time,
-    event: event_id, // ✅ Linking race to event
+    event: event_id, //  Linking race to event
     createdBy,
   });
 
@@ -73,3 +74,31 @@ export const deleteRace = async (raceName: string) => {
   await race.deleteOne();
   return { message: 'Race deleted successfully' };
 };
+
+
+//  Get Races by Event Name (Including Event ID)
+export const getRacesByEvent = async (eventName: string) => {
+  //  Find Event by Name
+  const event = await Event.findOne({ event_name: eventName });
+
+  if (!event) {
+    throw new NotFoundError('Event not found');
+  }
+
+  //  Find Races for this Event
+  const races = await Race.find({ event: event._id })
+    .select('name type distance date time event teams')
+    .populate('teams', 'team_name');
+
+  return races.map((race) => ({
+    _id: race._id,
+    name: race.name,
+    type: race.type,
+    distance: race.distance,
+    date: race.date,
+    time: race.time,
+    event: race.event, //  Include Event ID
+    teams: race.teams,
+  }));
+};
+
