@@ -13,17 +13,21 @@ export interface IRace extends Document {
 
 const RaceSchema = new Schema<IRace>(
   {
-    name: { type: String, required: true, unique: true, trim: true },
+    name: { type: String, required: true, trim: true },
     type: { type: String, required: true, trim: true },
     distance: { type: Number, required: true },
     date: { type: Date, required: true },
     time: { type: String, required: true, trim: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
     teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
-    event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true }, //  relation to Event
+    event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true }, // ✅ Required relation to Event
   },
   { timestamps: true }
 );
 
+// ✅ Ensure race names are unique within the same event
+RaceSchema.index({ name: 1, event: 1 }, { unique: true });
 
 export default mongoose.model<IRace>('Race', RaceSchema);
+
+  

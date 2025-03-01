@@ -8,26 +8,29 @@ export const createRace = async (
   distance: number,
   date: Date,
   time: string,
-  createdBy: string
+  createdBy: string,
+  event_id: string
 ) => {
-  //  Check if race with same name exists
-  const existingRace = await Race.findOne({ name });
+  // ✅ Ensure race name is unique within the same event
+  const existingRace = await Race.findOne({ name, event: event_id });
   if (existingRace) {
-    throw new BadRequestError('Race name must be unique');
+    throw new BadRequestError('A race with this name already exists for this event.');
   }
 
-  //  Create new race
+  // ✅ Create new race
   const race = new Race({
     name,
     type,
     distance,
     date,
     time,
+    event: event_id, // ✅ Linking race to event
     createdBy,
   });
 
   return await race.save();
 };
+
 
 //  Get All Races (Visible to All Clubs)
 export const getAllRaces = async () => {

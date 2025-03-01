@@ -4,6 +4,7 @@ import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { createRace, deleteRace, getAllRaces, getRaceByName, updateRace } from '../services/raceService';
+import Event from '../models/Event';
 
 // ✅ Add New Race (Admin Only)
 export const addNewRace = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
@@ -11,14 +12,25 @@ export const addNewRace = asyncWrapper(async (req: AuthenticatedRequest, res: Re
     throw new BadRequestError('Only Admins can create races');
   }
 
-  const { name, type, distance, date, time } = req.body;
-  if (!name || !type || !distance || !date || !time) {
-    throw new BadRequestError('All fields are required');
+  const { name, type, distance, date, time, event_id } = req.body;
+
+  // ✅ Validate required fields
+  if (!name || !type || !distance || !date || !time || !event_id) {
+    throw new BadRequestError('All fields including event_id are required');
   }
 
-  const race = await createRace(name, type, distance, date, time, req.club.id);
+  // ✅ Ensure the event exists before adding a race
+  const eventExists = await Event.findById(event_id);
+  if (!eventExists) {
+    throw new BadRequestError('Event not found. Please provide a valid event_id.');
+  }
+
+  // ✅ Create the race linked to the event
+  const race = await createRace(name, type, distance, date, time, req.club.id, event_id);
+
   return new SuccessResponse(race, 'Race created successfully');
 });
+
 
 // ✅ Get All Races (For All Clubs)
 export const getRaces = asyncWrapper(async (req: Request, res: Response) => {
