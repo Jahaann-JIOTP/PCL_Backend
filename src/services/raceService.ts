@@ -47,34 +47,58 @@ export const getRaceByName = async (raceName: string) => {
   return race;
 };
 
-//  Update Race (Admin Only)
+
+//  Update Race (Admin Only) - Ensuring Unique Name in the Event
 export const updateRace = async (
-  raceName: string,
+  raceId: string,
   updates: Partial<IRace>
 ) => {
-  const race = await Race.findOneAndUpdate({ name: raceName }, updates, { new: true });
+  const { name, event } = updates;
+
+  //  Ensure the race exists
+  const race = await Race.findById(raceId);
   if (!race) {
     throw new NotFoundError('Race not found');
   }
+
+  //  Ensure the event exists before updating
+  if (event) {
+    const eventExists = await Event.findById(event);
+    if (!eventExists) {
+      throw new BadRequestError('Invalid event ID. The specified event does not exist.');
+    }
+  }
+
+  //  Ensure race name is unique within the same event
+  if (name && race.event) {
+    const existingRace = await Race.findOne({ name, event: race.event, _id: { $ne: raceId } });
+    if (existingRace) {
+      throw new BadRequestError('A race with this name already exists for this event.');
+    }
+  }
+
+  Object.assign(race, updates);
+  await race.save();
+
   return race;
 };
 
-//  Delete Race (Admin Only) - Only if No Teams are Registered
-export const deleteRace = async (raceName: string) => {
-  const race = await Race.findOne({ name: raceName });
+//  Delete Race (Admin Only) - Prevents deletion if teams exist
+export const deleteRace = async (raceId: string) => {
+  const race = await Race.findById(raceId);
 
   if (!race) {
     throw new NotFoundError('Race not found');
   }
 
+  //  Prevent Deletion if Teams Exist
   if (race.teams && race.teams.length > 0) {
-    throw new BadRequestError('Cannot delete a race with registered teams. Remove teams first.');
+    throw new BadRequestError('Cannot delete a race with assigned teams. Unassign teams first.');
   }
 
   await race.deleteOne();
   return { message: 'Race deleted successfully' };
 };
-
 
 //  Get Races by Event Name (Including Event ID)
 export const getRacesByEvent = async (eventName: string) => {

@@ -14,10 +14,10 @@ raceRouter.get('/all', protect, getRaces);
 // raceRouter.get('/:raceName', protect, getSingleRace);
 
 //  Update Race Details (Admin Only)
-raceRouter.put('/:raceName', protect, adminOnly, updateRaceDetails);
+raceRouter.put('/update/:raceId', protect, adminOnly, updateRaceDetails);
 
 //  Delete Race (Admin Only)
-raceRouter.delete('/:raceName', protect, adminOnly, deleteRaceController);
+raceRouter.delete('/delete/:raceId', protect, adminOnly, deleteRaceController);
 
 // ✅ Get Races by Event Name
 raceRouter.get('/by-event/:eventName', getEventRaces);
