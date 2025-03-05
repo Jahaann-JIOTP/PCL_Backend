@@ -6,7 +6,30 @@ import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { createRace, deleteRace, getAllRaces, getRaceByName, getRacesByEvent, updateRace } from '../services/raceService';
 import Event from '../models/Event';
 
-//  Add New Race (Admin Only)
+//  Add New Race (Admin Only) - Without race id in the database
+// export const addNewRace = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+//   if (!req.club?.id || req.club.role !== 'admin') {
+//     throw new BadRequestError('Only Admins can create races');
+//   }
+
+//   const { name, type, distance, date, time, event_id } = req.body;
+
+//   //  Validate required fields
+//   if (!name || !type || !distance || !date || !time || !event_id) {
+//     throw new BadRequestError('All fields including event_id are required');
+//   }
+
+//   //  Ensure the event exists before adding a race
+//   const eventExists = await Event.findById(event_id);
+//   if (!eventExists) {
+//     throw new BadRequestError('Event not found. Please provide a valid event_id.');
+//   }
+
+//   //  Create the race linked to the event
+//   const race = await createRace(name, type, distance, date, time, req.club.id, event_id);
+
+//   return new SuccessResponse(race, 'Race created successfully');
+// });
 export const addNewRace = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   if (!req.club?.id || req.club.role !== 'admin') {
     throw new BadRequestError('Only Admins can create races');
@@ -14,18 +37,18 @@ export const addNewRace = asyncWrapper(async (req: AuthenticatedRequest, res: Re
 
   const { name, type, distance, date, time, event_id } = req.body;
 
-  //  Validate required fields
+  // ✅ Validate required fields
   if (!name || !type || !distance || !date || !time || !event_id) {
     throw new BadRequestError('All fields including event_id are required');
   }
 
-  //  Ensure the event exists before adding a race
+  // ✅ Ensure the event exists before adding a race
   const eventExists = await Event.findById(event_id);
   if (!eventExists) {
     throw new BadRequestError('Event not found. Please provide a valid event_id.');
   }
 
-  //  Create the race linked to the event
+  // ✅ Create the race linked to the event
   const race = await createRace(name, type, distance, date, time, req.club.id, event_id);
 
   return new SuccessResponse(race, 'Race created successfully');

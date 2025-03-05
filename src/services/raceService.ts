@@ -2,7 +2,36 @@ import Event from '../models/Event';
 import Race, { IRace } from '../models/Race';
 import { BadRequestError, NotFoundError } from '../utils/apiError';
 
-//  Create a New Race (Admin Only)
+//  Create a New Race (Admin Only) - without race id in arry
+// export const createRace = async (
+//   name: string,
+//   type: string,
+//   distance: number,
+//   date: Date,
+//   time: string,
+//   createdBy: string,
+//   event_id: string
+// ) => {
+//   //  Ensure race name is unique within the same event
+//   const existingRace = await Race.findOne({ name, event: event_id });
+//   if (existingRace) {
+//     throw new BadRequestError('A race with this name already exists for this event.');
+//   }
+
+//   //  Create new race
+//   const race = new Race({
+//     name,
+//     type,
+//     distance,
+//     date,
+//     time,
+//     event: event_id, //  Linking race to event
+//     createdBy,
+//   });
+
+//   return await race.save();
+// };
+
 export const createRace = async (
   name: string,
   type: string,
@@ -18,6 +47,12 @@ export const createRace = async (
     throw new BadRequestError('A race with this name already exists for this event.');
   }
 
+  //  Ensure the event exists before adding a race
+  const event = await Event.findById(event_id);
+  if (!event) {
+    throw new BadRequestError('Event not found. Please provide a valid event_id.');
+  }
+
   //  Create new race
   const race = new Race({
     name,
@@ -25,13 +60,17 @@ export const createRace = async (
     distance,
     date,
     time,
-    event: event_id, //  Linking race to event
+    event: event_id, // Linking race to event
     createdBy,
   });
 
-  return await race.save();
-};
+  const savedRace = await race.save();
 
+  //  Update the event to include this race in its `races` array
+  await Event.findByIdAndUpdate(event_id, { $push: { races: savedRace._id } });
+
+  return savedRace;
+};
 
 //  Get All Races (Visible to All Clubs)
 export const getAllRaces = async () => {

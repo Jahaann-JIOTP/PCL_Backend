@@ -11,6 +11,7 @@ import relationRouter from './routes/PlayerTeamsRealtionRoutes';
 import adminRouter from './routes/adminRoutes';
 import raceRouter from './routes/raceRoutes';
 import eventRouter from './routes/eventRoutes';
+import eventRaceRouter from './routes/eventRaceRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -52,6 +53,7 @@ app.use('/api/relation', relationRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/races', raceRouter);
 app.use('/api/events', eventRouter);
+app.use('/api/event-teams', eventRaceRouter);
 
 
 // Global Error Handler
