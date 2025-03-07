@@ -2,6 +2,11 @@ import mongoose from 'mongoose';
 import Player from '../models/players';
 import Team from '../models/teams';
 import { BadRequestError } from '../utils/apiError';
+import Club from "../models/Club";
+import Race from "../models/Race";
+import Event from "../models/Event";
+import RaceTeamAssignment from '../models/models/RaceTeamAssignment';
+import RacePlayerAssignment from '../models/RacePlayerAssignment';
 
 //  Assign Multiple Players to a Team
 export const assignMultiplePlayersToTeam = async (playerCnics: string[], teamName: string, clubId: string) => {
@@ -253,3 +258,176 @@ export const deletePlayerService = async (playerCnic: string, clubId: string) =>
     message: `Player '${player.name}' with CNIC '${player.cnic}' has been deleted successfully.`,
   };
 };
+
+
+
+      //  ------------------ APIS For TEAMS assignation in races --------------------------------
+
+// ✅ Assign a Team to a Race
+export const assignTeam = async (
+  race_id: string,
+  event_id: string,
+  team_id: string,
+  club_id: string
+) => {
+  // ✅ Ensure Club Exists
+  const clubExists = await Club.findById(club_id);
+  if (!clubExists) {
+    throw new BadRequestError("Club not found.");
+  }
+
+  // ✅ Ensure Event Exists
+  const eventExists = await Event.findById(event_id);
+  if (!eventExists) {
+    throw new BadRequestError("Event not found.");
+  }
+
+  // ✅ Ensure Race Exists and is in the Given Event
+  const raceExists = await Race.findOne({ _id: race_id, event: event_id });
+  if (!raceExists) {
+    throw new BadRequestError("Race not found in this event.");
+  }
+
+  // ✅ Ensure Team Exists and Belongs to the Club
+  const teamExists = await Team.findOne({ _id: team_id, club: club_id });
+  if (!teamExists) {
+    throw new BadRequestError("Team not found in this club.");
+  }
+
+  // ✅ Ensure the Team is NOT already assigned to the Race
+  const existingAssignment = await RaceTeamAssignment.findOne({ team: team_id, race: race_id, event: event_id });
+  if (existingAssignment) {
+    throw new BadRequestError("This team is already assigned to this race.");
+  }
+
+  // ✅ Create and Save Assignment
+  const assignment = new RaceTeamAssignment({
+    team: team_id,
+    race: race_id,
+    event: event_id,
+    club: club_id, // ✅ Ensures the relation is correct
+  });
+
+  return await assignment.save();
+};
+
+
+
+// ✅ Fetch Teams Assigned to a Specific Event and Race
+export const getAssignedTeams = async (event_id: string, race_id: string) => {
+  const assignedTeams = await RaceTeamAssignment.find({ event: event_id, race: race_id })
+    .populate<{ team: { _id: string; team_name: string; club: string } }>({
+      path: "team",
+      select: "team_name club"
+    })
+    .lean(); // ✅ Convert Mongoose documents to plain JavaScript objects
+
+  if (!assignedTeams || assignedTeams.length === 0) {
+    throw new BadRequestError('No teams assigned to this race.');
+  }
+
+  return assignedTeams.map(assignment => ({
+    _id: assignment.team._id, // ✅ Now correctly recognized
+    team_name: assignment.team.team_name, // ✅ Now correctly recognized
+    club: assignment.team.club, // ✅ Now correctly recognized
+    assigned_race: assignment.race,
+    event: assignment.event
+  }));
+};
+
+
+
+// // ✅ Fetch Assigned Teams with Player Details (Filtered)
+// export const getAssignedTeams = async (event_id: string, race_id: string) => {
+//   const assignedTeams = await RaceTeamAssignment.find({ event: event_id, race: race_id })
+//     .populate({
+//       path: "team",
+//       select: "_id team_name team_type description club", // ✅ Fetch only required team fields
+//       populate: {
+//         path: "club",
+//         select: "_id name" // ✅ Fetch club details
+//       }
+//     })
+//     .populate({
+//       path: "race",
+//       select: "_id name type distance date time" // ✅ Fetch race details
+//     })
+//     .populate({
+//       path: "event",
+//       select: "_id event_name" // ✅ Fetch event details
+//     })
+//     .lean(); // ✅ Convert Mongoose documents into plain JSON objects
+
+//   // ✅ Handle case where no teams are assigned
+//   if (!assignedTeams || assignedTeams.length === 0) {
+//     throw new NotFoundError("No teams assigned to this race.");
+//   }
+
+//   // ✅ Fetch Player Details for Each Team
+//   const teamsWithPlayers = await Promise.all(
+//     assignedTeams.map(async (assignment) => {
+//       if (!assignment.team || !assignment.team._id) return null; // ✅ Ensure valid team
+
+//       // ✅ Fetch players assigned to this team in the specific race & event
+//       const playersStatus = await RacePlayerAssignment.find({
+//         event: event_id,
+//         race: race_id,
+//         team: assignment.team._id
+//       })
+//         .populate({
+//           path: "player",
+//           select: "_id name bib_number gender cnic" // ✅ Fetch required player details
+//         })
+//         .lean();
+
+//       return {
+//         _id: assignment.team._id,
+//         team_name: assignment.team.team_name || "Unknown Team",
+//         team_type: assignment.team.team_type || "Unknown Type",
+//         description: assignment.team.description || "No Description",
+//         club: assignment.team.club?.name || "Unknown Club",
+//         assigned_race: {
+//           _id: assignment.race?._id || null,
+//           name: assignment.race?.name || "Unknown Race",
+//           type: assignment.race?.type || "Unknown Type",
+//           distance: assignment.race?.distance || 0,
+//           date: assignment.race?.date || null,
+//           time: assignment.race?.time || "Unknown Time",
+//         },
+//         event: assignment.event?._id || null,
+//         players: playersStatus.map((playerAssignment) => ({
+//           _id: playerAssignment.player?._id || null,
+//           name: playerAssignment.player?.name || "Unknown Player",
+//           bib_number: playerAssignment.player?.bib_number || "N/A",
+//           gender: playerAssignment.player?.gender || "Unknown",
+//           cnic: playerAssignment.player?.cnic || "N/A",
+//         }))
+//       };
+//     })
+//   );
+
+//   // ✅ Remove any `null` values in case of missing teams
+//   return teamsWithPlayers.filter((team) => team !== null);
+// };
+
+
+
+
+// ✅ Fetch Teams NOT Assigned to Any Race in a Specific Event
+export const getUnassignedTeams = async (event_id: string, club_id: string) => {
+  // Find all assigned teams for this event
+  const assignedTeams = await RaceTeamAssignment.find({ event: event_id }).distinct("team");
+
+  // Find all teams of the club that are NOT in assignedTeams
+  const unassignedTeams = await Team.find({
+    club: club_id,
+    _id: { $nin: assignedTeams }
+  }).select("_id team_name team_type club");
+
+  if (!unassignedTeams || unassignedTeams.length === 0) {
+    throw new BadRequestError('No unassigned teams found.');
+  }
+
+  return unassignedTeams;
+};
+

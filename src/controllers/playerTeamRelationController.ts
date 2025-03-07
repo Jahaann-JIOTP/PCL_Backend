@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { assignMultiplePlayersToTeam, checkPlayerAssignment, deletePlayerService, getPlayersByFilter, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
+import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService, getAssignedTeams, getPlayersByFilter, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { BadRequestError } from '../utils/apiError';
+import teamRouter from '../routes/teamRoutes';
 
 //  Assign Multiple Players to a Team Controller
 export const assignPlayers = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
@@ -51,7 +52,6 @@ export const getFiltersPlayers = asyncWrapper(async (req: AuthenticatedRequest, 
 });
 
 
-
 //  Unassign Player Controller
 export const unassignPlayer = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   //  Extract clubId from JWT token
@@ -71,7 +71,6 @@ export const unassignPlayer = asyncWrapper(async (req: AuthenticatedRequest, res
 
   return new SuccessResponse(result, 'Player unassigned successfully');
 });
-
 
 //  Controller to check if a player is assigned before deletion
 export const checkBeforeDelete = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
@@ -106,4 +105,55 @@ export const removePlayer = asyncWrapper(async (req: AuthenticatedRequest, res: 
   const result = await deletePlayerService(player_cnic, clubId);
 
   return new SuccessResponse(result, 'Player deletion processed successfully');
+});
+
+
+              //  ------------------ APIS For Teams Assignation in races ---------------------------
+
+// ✅ Assign a Team to a Race (Club Portal)
+export const assignTeamToRace = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.club?.id) {
+    throw new BadRequestError("Club authentication failed.");
+  }
+
+  const club_id = req.club.id; // ✅ Club ID from JWT
+  const { race_id, event_id, team_id } = req.body;
+
+  if (!race_id || !event_id || !team_id) {
+    throw new BadRequestError("Race ID, Event ID, and Team ID are required.");
+  }
+
+  const result = await assignTeam(race_id, event_id, team_id, club_id);
+
+  return new SuccessResponse(result, "Team assigned to race successfully.");
+});
+
+
+
+
+// ✅ Get Assigned Teams in a Race for a Specific Event
+export const getAssignedTeamsController = asyncWrapper(async (req: Request, res: Response) => {
+  const { event_id, race_id } = req.query;
+
+  if (!event_id || !race_id) {
+    throw new BadRequestError("Event ID and Race ID are required.");
+  }
+
+  const assignedTeams = await getAssignedTeams(event_id as string, race_id as string);
+  return new SuccessResponse(assignedTeams, "Assigned teams retrieved successfully.");
+});
+
+// ✅ Get Unassigned Teams for a Specific Event (Only for Club)
+export const getUnassignedTeamsController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.club?.id) {
+    throw new BadRequestError("Club authentication failed.");
+  }
+
+  const { event_id } = req.query;
+  if (!event_id) {
+    throw new BadRequestError("Event ID is required.");
+  }
+
+  const unassignedTeams = await getUnassignedTeams(event_id as string, req.club.id);
+  return new SuccessResponse(unassignedTeams, "Unassigned teams retrieved successfully.");
 });
