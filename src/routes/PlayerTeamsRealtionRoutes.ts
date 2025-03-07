@@ -1,5 +1,5 @@
 import express from 'express';
-import { assignPlayers, assignTeamToRace, checkBeforeDelete, getAssignedTeamsController, getFiltersPlayers, getUnassignedTeamsController, removePlayer, unassignPlayer } from '../controllers/playerTeamRelationController';
+import { assignPlayers, assignTeamToRace, checkBeforeDelete, getAssignedTeamsController, getFiltersPlayers, getPlayersWithStatus, getUnassignedTeamsController, removePlayer, unassignPlayer } from '../controllers/playerTeamRelationController';
 import { protect } from '../middleware/authMiddleware';
 
 const relationRouter = express.Router();
@@ -32,4 +32,8 @@ relationRouter.get("/race/assigned-teams", getAssignedTeamsController);
 
 // ✅ Get Unassigned Teams for a Specific Event (Club Portal)
 relationRouter.get("/race/unassigned-teams", protect, getUnassignedTeamsController);
+
+// ✅ API: Get Players with Status for a Specific Team, Event & Race
+relationRouter.get("/race/players-status", protect, getPlayersWithStatus);
+
 export default relationRouter;

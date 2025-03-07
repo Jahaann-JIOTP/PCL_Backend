@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService, getAssignedTeams, getPlayersByFilter, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
+import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService,  getPlayersByFilter, getTeamPlayersWithStatus, getTeamsAndPlayersForRace, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
@@ -129,18 +129,17 @@ export const assignTeamToRace = asyncWrapper(async (req: AuthenticatedRequest, r
 });
 
 
-
-
-// ✅ Get Assigned Teams in a Race for a Specific Event
-export const getAssignedTeamsController = asyncWrapper(async (req: Request, res: Response) => {
-  const { event_id, race_id } = req.query;
+// ✅ API: Get Teams and Players for a Specific Race & Event
+export const getAssignedTeamsController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  const { event_id, race_id } = req.query; // ✅ Get query params
 
   if (!event_id || !race_id) {
     throw new BadRequestError("Event ID and Race ID are required.");
   }
 
-  const assignedTeams = await getAssignedTeams(event_id as string, race_id as string);
-  return new SuccessResponse(assignedTeams, "Assigned teams retrieved successfully.");
+  const teamsWithPlayers = await getTeamsAndPlayersForRace(event_id as string, race_id as string);
+
+  return new SuccessResponse(teamsWithPlayers, "Teams and players retrieved successfully.");
 });
 
 // ✅ Get Unassigned Teams for a Specific Event (Only for Club)
@@ -157,3 +156,19 @@ export const getUnassignedTeamsController = asyncWrapper(async (req: Authenticat
   const unassignedTeams = await getUnassignedTeams(event_id as string, req.club.id);
   return new SuccessResponse(unassignedTeams, "Unassigned teams retrieved successfully.");
 });
+
+
+// ✅ API: Get Players with Status for a Specific Team, Event & Race
+export const getPlayersWithStatus = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  const { team_id, event_id, race_id } = req.query; // ✅ Get query params
+
+  if (!team_id || !event_id || !race_id) {
+    throw new BadRequestError("Team ID, Event ID, and Race ID are required.");
+  }
+
+  const players = await getTeamPlayersWithStatus(team_id as string, event_id as string, race_id as string);
+
+  return new SuccessResponse(players, "Players retrieved successfully.");
+});
+
+

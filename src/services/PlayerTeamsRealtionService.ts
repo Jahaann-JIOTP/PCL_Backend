@@ -311,105 +311,95 @@ export const assignTeam = async (
   return await assignment.save();
 };
 
-
-
 // ✅ Fetch Teams Assigned to a Specific Event and Race
-export const getAssignedTeams = async (event_id: string, race_id: string) => {
-  const assignedTeams = await RaceTeamAssignment.find({ event: event_id, race: race_id })
-    .populate<{ team: { _id: string; team_name: string; club: string } }>({
-      path: "team",
-      select: "team_name club"
-    })
-    .lean(); // ✅ Convert Mongoose documents to plain JavaScript objects
-
-  if (!assignedTeams || assignedTeams.length === 0) {
-    throw new BadRequestError('No teams assigned to this race.');
-  }
-
-  return assignedTeams.map(assignment => ({
-    _id: assignment.team._id, // ✅ Now correctly recognized
-    team_name: assignment.team.team_name, // ✅ Now correctly recognized
-    club: assignment.team.club, // ✅ Now correctly recognized
-    assigned_race: assignment.race,
-    event: assignment.event
-  }));
-};
-
-
-
-// // ✅ Fetch Assigned Teams with Player Details (Filtered)
 // export const getAssignedTeams = async (event_id: string, race_id: string) => {
 //   const assignedTeams = await RaceTeamAssignment.find({ event: event_id, race: race_id })
-//     .populate({
+//     .populate<{ team: { _id: string; team_name: string; club: string } }>({
 //       path: "team",
-//       select: "_id team_name team_type description club", // ✅ Fetch only required team fields
-//       populate: {
-//         path: "club",
-//         select: "_id name" // ✅ Fetch club details
-//       }
+//       select: "team_name club"
 //     })
-//     .populate({
-//       path: "race",
-//       select: "_id name type distance date time" // ✅ Fetch race details
-//     })
-//     .populate({
-//       path: "event",
-//       select: "_id event_name" // ✅ Fetch event details
-//     })
-//     .lean(); // ✅ Convert Mongoose documents into plain JSON objects
+//     .lean(); // ✅ Convert Mongoose documents to plain JavaScript objects
 
-//   // ✅ Handle case where no teams are assigned
 //   if (!assignedTeams || assignedTeams.length === 0) {
-//     throw new NotFoundError("No teams assigned to this race.");
+//     throw new BadRequestError('No teams assigned to this race.');
 //   }
 
-//   // ✅ Fetch Player Details for Each Team
-//   const teamsWithPlayers = await Promise.all(
-//     assignedTeams.map(async (assignment) => {
-//       if (!assignment.team || !assignment.team._id) return null; // ✅ Ensure valid team
-
-//       // ✅ Fetch players assigned to this team in the specific race & event
-//       const playersStatus = await RacePlayerAssignment.find({
-//         event: event_id,
-//         race: race_id,
-//         team: assignment.team._id
-//       })
-//         .populate({
-//           path: "player",
-//           select: "_id name bib_number gender cnic" // ✅ Fetch required player details
-//         })
-//         .lean();
-
-//       return {
-//         _id: assignment.team._id,
-//         team_name: assignment.team.team_name || "Unknown Team",
-//         team_type: assignment.team.team_type || "Unknown Type",
-//         description: assignment.team.description || "No Description",
-//         club: assignment.team.club?.name || "Unknown Club",
-//         assigned_race: {
-//           _id: assignment.race?._id || null,
-//           name: assignment.race?.name || "Unknown Race",
-//           type: assignment.race?.type || "Unknown Type",
-//           distance: assignment.race?.distance || 0,
-//           date: assignment.race?.date || null,
-//           time: assignment.race?.time || "Unknown Time",
-//         },
-//         event: assignment.event?._id || null,
-//         players: playersStatus.map((playerAssignment) => ({
-//           _id: playerAssignment.player?._id || null,
-//           name: playerAssignment.player?.name || "Unknown Player",
-//           bib_number: playerAssignment.player?.bib_number || "N/A",
-//           gender: playerAssignment.player?.gender || "Unknown",
-//           cnic: playerAssignment.player?.cnic || "N/A",
-//         }))
-//       };
-//     })
-//   );
-
-//   // ✅ Remove any `null` values in case of missing teams
-//   return teamsWithPlayers.filter((team) => team !== null);
+//   return assignedTeams.map(assignment => ({
+//     _id: assignment.team._id, // ✅ Now correctly recognized
+//     team_name: assignment.team.team_name, // ✅ Now correctly recognized
+//     club: assignment.team.club, // ✅ Now correctly recognized
+//     assigned_race: assignment.race,
+//     event: assignment.event
+//   }));
 // };
 
+
+// ✅ Fetch all Teams in a Race and Their Players with Status
+export const getTeamsAndPlayersForRace = async (event_id: string, race_id: string) => {
+  // ✅ Step 1: Fetch all teams assigned to this race
+  const assignedTeams = await RaceTeamAssignment.find({ event: event_id, race: race_id })
+    .select("team") // ✅ Only fetch team IDs
+    .lean();
+
+  if (!assignedTeams || assignedTeams.length === 0) {
+    throw new BadRequestError("No teams assigned to this race.");
+  }
+
+  const teamIds = assignedTeams.map(team => team.team);
+
+  // ✅ Step 2: Fetch team details (name, type) for the retrieved team IDs
+  const teams = await Team.find({ _id: { $in: teamIds } })
+    .select("_id team_name team_type")
+    .lean();
+
+  if (!teams || teams.length === 0) {
+    throw new BadRequestError("No teams found for this race.");
+  }
+
+  // ✅ Step 3: Fetch all players from these teams
+  const players = await Player.find({ team: { $in: teamIds } })
+    .select("_id name bib_number gender cnic team") // ✅ Fetch only required fields
+    .lean();
+
+  // ✅ Step 4: Fetch player assignments (status) for the given event & race
+  const playerIds = players.map(player => player._id);
+  const playerAssignments = await RacePlayerAssignment.find({
+    player: { $in: playerIds },
+    event: event_id,
+    race: race_id
+  })
+    .select("player status") // ✅ Fetch player status only
+    .lean();
+
+  // ✅ Step 5: Create a mapping for quick lookup
+  const playerStatusMap = new Map(playerAssignments.map(pa => [pa.player.toString(), pa.status]));
+
+  // ✅ Step 6: Group players under their respective teams
+  const teamPlayerMap = new Map();
+  teams.forEach(team => {
+    teamPlayerMap.set(
+      team._id.toString(),
+      players
+        .filter(player => player.team?.toString() === team._id.toString())
+        .map(player => ({
+          _id: player._id,
+          player_name: player.name,
+          bib_number: player.bib_number || "N/A",
+          gender: player.gender,
+          cnic: player.cnic,
+          status: playerStatusMap.get(player._id.toString()) || "unassigned" // ✅ Default to "unassigned"
+        }))
+    );
+  });
+
+  // ✅ Step 7: Return structured response
+  return teams.map(team => ({
+    _id: team._id,
+    team_name: team.team_name,
+    team_type: team.team_type,
+    players: teamPlayerMap.get(team._id.toString()) || [] // ✅ Default to empty array if no players
+  }));
+};
 
 
 
@@ -431,3 +421,40 @@ export const getUnassignedTeams = async (event_id: string, club_id: string) => {
   return unassignedTeams;
 };
 
+
+// ✅ Fetch Players of a Team with Their Status for a Specific Event & Race
+export const getTeamPlayersWithStatus = async (team_id: string, event_id: string, race_id: string) => {
+  // ✅ Step 1: Fetch all players of the given team
+  const players = await Player.find({ team: team_id })
+    .select("_id name bib_number gender cnic") // ✅ Fetch only required fields
+    .lean();
+
+  if (!players || players.length === 0) {
+    throw new BadRequestError("No players found for this team.");
+  }
+
+  // ✅ Step 2: Fetch player assignments (status) for the given event & race
+  const playerIds = players.map(player => player._id); // ✅ Extract player IDs
+  const playerAssignments = await RacePlayerAssignment.find({
+    player: { $in: playerIds },
+    event: event_id,
+    race: race_id
+  })
+    .select("player status") // ✅ Fetch player status only
+    .lean();
+
+  // ✅ Step 3: Map players with their status
+  const playerStatusMap = new Map(playerAssignments.map(pa => [pa.player.toString(), pa.status]));
+
+  // ✅ Step 4: Merge player details with their status
+  const playersWithStatus = players.map(player => ({
+    _id: player._id,
+    player_name: player.name,
+    bib_number: player.bib_number || "N/A",
+    gender: player.gender,
+    cnic: player.cnic,
+    status: playerStatusMap.get(player._id.toString()) || "unassigned" // ✅ Default to "unassigned" if not found
+  }));
+
+  return playersWithStatus;
+};
