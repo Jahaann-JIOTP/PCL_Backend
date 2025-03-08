@@ -129,6 +129,21 @@ export const updateRace = async (
 };
 
 //  Delete Race (Admin Only) - Prevents deletion if teams exist
+// export const deleteRace = async (raceId: string) => {
+//   const race = await Race.findById(raceId);
+
+//   if (!race) {
+//     throw new NotFoundError('Race not found');
+//   }
+
+//   //  Prevent Deletion if Teams Exist
+//   if (race.teams && race.teams.length > 0) {
+//     throw new BadRequestError('Cannot delete a race with assigned teams. Unassign teams first.');
+//   }
+
+//   await race.deleteOne();
+//   return { message: 'Race deleted successfully' };
+// };
 export const deleteRace = async (raceId: string) => {
   const race = await Race.findById(raceId);
 
@@ -136,14 +151,22 @@ export const deleteRace = async (raceId: string) => {
     throw new NotFoundError('Race not found');
   }
 
-  //  Prevent Deletion if Teams Exist
-  if (race.teams && race.teams.length > 0) {
-    throw new BadRequestError('Cannot delete a race with assigned teams. Unassign teams first.');
-  }
+  // // ✅ Prevent Deletion if Teams Exist
+  // if (race.teams && race.teams.length > 0) {
+  //   throw new BadRequestError('Cannot delete a race with assigned teams. Unassign teams first.');
+  // }
 
+  // ✅ Remove Race ID from the Event Collection
+  await Event.findByIdAndUpdate(race.event, { 
+    $pull: { races: raceId } 
+  });
+
+  // ✅ Delete the Race
   await race.deleteOne();
+
   return { message: 'Race deleted successfully' };
 };
+
 
 //  Get Races by Event Name (Including Event ID)
 // export const getRacesByEvent = async (eventName: string) => {
