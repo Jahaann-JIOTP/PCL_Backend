@@ -61,17 +61,28 @@ export const getRaces = asyncWrapper(async (req: Request, res: Response) => {
   return new SuccessResponse(races, 'Races retrieved successfully');
 });
 
+// export const getEventRaces = asyncWrapper(async (req: Request, res: Response) => {
+//   const { eventName } = req.params;
+
+//   if (!eventName) {
+//     throw new BadRequestError('Event name is required');
+//   }
+
+//   const races = await getRacesByEvent(eventName);
+//   return new SuccessResponse(races, `Races for event ${eventName} retrieved successfully`);
+// });
+
+// ✅ Get All Races in an Event with Teams & Players
 export const getEventRaces = asyncWrapper(async (req: Request, res: Response) => {
   const { eventName } = req.params;
 
   if (!eventName) {
-    throw new BadRequestError('Event name is required');
+    throw new BadRequestError("Event name is required");
   }
 
   const races = await getRacesByEvent(eventName);
   return new SuccessResponse(races, `Races for event ${eventName} retrieved successfully`);
 });
-
 
 //  Update Race Details (Admin Only)
 export const updateRaceDetails = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {

@@ -1,6 +1,12 @@
 import Event from '../models/Event';
 import Race, { IRace } from '../models/Race';
 import { BadRequestError, NotFoundError } from '../utils/apiError';
+import RacePlayerAssignment from "../models/RacePlayerAssignment";
+import RaceTeamAssignment from '../models/models/RaceTeamAssignment';
+import Team from '../models/teams';
+import Player, { IPlayer } from '../models/players';
+
+
 
 //  Create a New Race (Admin Only) - without race id in arry
 // export const createRace = async (
@@ -140,28 +146,134 @@ export const deleteRace = async (raceId: string) => {
 };
 
 //  Get Races by Event Name (Including Event ID)
+// export const getRacesByEvent = async (eventName: string) => {
+//   //  Find Event by Name
+//   const event = await Event.findOne({ event_name: eventName });
+
+//   if (!event) {
+//     throw new NotFoundError('Event not found');
+//   }
+
+//   //  Find Races for this Event
+//   const races = await Race.find({ event: event._id })
+//     .select('name type distance date time event teams')
+//     .populate('teams', 'team_name');
+
+//   return races.map((race) => ({
+//     _id: race._id,
+//     name: race.name,
+//     type: race.type,
+//     distance: race.distance,
+//     date: race.date,
+//     time: race.time,
+//     event: race.event, //  Include Event ID
+//     teams: race.teams,
+//   }));
+// };
+
+
+
+// ✅ Fetch all Races of an Event & Attach Teams & Players with Status
 export const getRacesByEvent = async (eventName: string) => {
-  //  Find Event by Name
+  // ✅ Step 1: Find the event by name
   const event = await Event.findOne({ event_name: eventName });
 
   if (!event) {
-    throw new NotFoundError('Event not found');
+    throw new BadRequestError("Event not found");
   }
 
-  //  Find Races for this Event
+  // ✅ Step 2: Find all races in this event
   const races = await Race.find({ event: event._id })
-    .select('name type distance date time event teams')
-    .populate('teams', 'team_name');
+    .select("_id name type distance date time event") // ✅ Fetch race details
+    .lean();
 
-  return races.map((race) => ({
+  if (!races || races.length === 0) {
+    throw new BadRequestError("No races found for this event.");
+  }
+
+  // ✅ Step 3: Fetch all team assignments for these races
+  const raceIds = races.map((race) => race._id);
+  const assignedTeams = await RaceTeamAssignment.find({
+    event: event._id,
+    race: { $in: raceIds },
+  })
+    .select("race team") // ✅ Fetch only necessary fields
+    .lean();
+
+  // ✅ Step 4: Group teams by race
+  const raceTeamMap = new Map();
+  assignedTeams.forEach((assignment) => {
+    const raceId = assignment.race.toString();
+    if (!raceTeamMap.has(raceId)) {
+      raceTeamMap.set(raceId, []);
+    }
+    raceTeamMap.get(raceId).push(assignment.team);
+  });
+
+  // ✅ Step 5: Fetch all team details
+  const teamIds = assignedTeams.map((t) => t.team);
+  const teams = await Team.find({ _id: { $in: teamIds } })
+    .select("_id team_name team_type description")
+    .lean();
+
+  // ✅ Step 6: Fetch players for these teams
+  const players = await Player.find({ team: { $in: teamIds } })
+    .select("_id name bib_number gender cnic team")
+    .lean();
+
+  // ✅ Step 7: Fetch player status from `RacePlayerAssignment`
+  const playerIds = players.map((p) => p._id);
+  const playerAssignments = await RacePlayerAssignment.find({
+    player: { $in: playerIds },
+    event: event._id,
+    race: { $in: raceIds },
+  })
+    .select("player status race team")
+    .lean();
+
+  // ✅ Step 8: Create Player Status Map
+  const playerStatusMap = new Map(playerAssignments.map((pa) => [pa.player.toString(), pa.status]));
+
+  // ✅ Step 9: Map Players to Their Teams
+  const teamPlayerMap = new Map();
+  teams.forEach((team) => {
+    teamPlayerMap.set(
+      team._id.toString(),
+      players
+        .filter((player) => player.team?.toString() === team._id.toString())
+        .map((player) => ({
+          _id: player._id,
+          player_name: player.name,
+          bib_number: player.bib_number || "N/A",
+          gender: player.gender,
+          cnic: player.cnic,
+          status: playerStatusMap.get(player._id.toString()) || "unassigned",
+        }))
+    );
+  });
+
+  // ✅ Step 10: Attach Teams (With Players) to Races
+  const racesWithTeams = races.map((race) => ({
     _id: race._id,
     name: race.name,
     type: race.type,
     distance: race.distance,
     date: race.date,
     time: race.time,
-    event: race.event, //  Include Event ID
-    teams: race.teams,
+    event: race.event,
+    teams: (raceTeamMap.get(race._id.toString()) || []).map((teamId) => {
+      const team = teams.find((t) => t._id.toString() === teamId.toString());
+      return team
+        ? {
+            _id: team._id,
+            team_name: team.team_name,
+            team_type: team.team_type,
+            description: team.description,
+            players: teamPlayerMap.get(team._id.toString()) || [],
+          }
+        : null;
+    }).filter((team) => team !== null), // ✅ Remove null values
   }));
-};
 
+  return racesWithTeams;
+};
