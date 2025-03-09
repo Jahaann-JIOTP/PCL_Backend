@@ -2,13 +2,12 @@ import Event from '../models/Event';
 import Race, { IRace } from '../models/Race';
 import { BadRequestError, NotFoundError } from '../utils/apiError';
 import RacePlayerAssignment from "../models/RacePlayerAssignment";
-import RaceTeamAssignment from '../models/models/RaceTeamAssignment';
+import RaceTeamAssignment from '../models/RaceTeamAssignment';
 import Team from '../models/teams';
 import Player, { IPlayer } from '../models/players';
 
+//  Create a New Race (Admin Only) 
 
-
-//  Create a New Race (Admin Only) - without race id in arry
 // export const createRace = async (
 //   name: string,
 //   type: string,
@@ -24,6 +23,12 @@ import Player, { IPlayer } from '../models/players';
 //     throw new BadRequestError('A race with this name already exists for this event.');
 //   }
 
+//   //  Ensure the event exists before adding a race
+//   const event = await Event.findById(event_id);
+//   if (!event) {
+//     throw new BadRequestError('Event not found. Please provide a valid event_id.');
+//   }
+
 //   //  Create new race
 //   const race = new Race({
 //     name,
@@ -31,13 +36,17 @@ import Player, { IPlayer } from '../models/players';
 //     distance,
 //     date,
 //     time,
-//     event: event_id, //  Linking race to event
+//     event: event_id, // Linking race to event
 //     createdBy,
 //   });
 
-//   return await race.save();
-// };
+//   const savedRace = await race.save();
 
+//   //  Update the event to include this race in its `races` array
+//   await Event.findByIdAndUpdate(event_id, { $push: { races: savedRace._id } });
+
+//   return savedRace;
+// };
 export const createRace = async (
   name: string,
   type: string,
@@ -45,38 +54,41 @@ export const createRace = async (
   date: Date,
   time: string,
   createdBy: string,
-  event_id: string
+  event_id: string,
+  active_player_no: number // ✅ Accept active players count
 ) => {
-  //  Ensure race name is unique within the same event
+  // ✅ Ensure race name is unique within the same event
   const existingRace = await Race.findOne({ name, event: event_id });
   if (existingRace) {
     throw new BadRequestError('A race with this name already exists for this event.');
   }
 
-  //  Ensure the event exists before adding a race
+  // ✅ Ensure the event exists before adding a race
   const event = await Event.findById(event_id);
   if (!event) {
     throw new BadRequestError('Event not found. Please provide a valid event_id.');
   }
 
-  //  Create new race
+  // ✅ Create new race with `active_player_no`
   const race = new Race({
     name,
     type,
     distance,
     date,
     time,
-    event: event_id, // Linking race to event
+    event: event_id,
     createdBy,
+    active_player_no, // ✅ New field
   });
 
   const savedRace = await race.save();
 
-  //  Update the event to include this race in its `races` array
+  // ✅ Update the event to include this race in its `races` array
   await Event.findByIdAndUpdate(event_id, { $push: { races: savedRace._id } });
 
   return savedRace;
 };
+
 
 //  Get All Races (Visible to All Clubs)
 export const getAllRaces = async () => {
@@ -91,7 +103,6 @@ export const getRaceByName = async (raceName: string) => {
   }
   return race;
 };
-
 
 //  Update Race (Admin Only) - Ensuring Unique Name in the Event
 export const updateRace = async (
@@ -129,21 +140,6 @@ export const updateRace = async (
 };
 
 //  Delete Race (Admin Only) - Prevents deletion if teams exist
-// export const deleteRace = async (raceId: string) => {
-//   const race = await Race.findById(raceId);
-
-//   if (!race) {
-//     throw new NotFoundError('Race not found');
-//   }
-
-//   //  Prevent Deletion if Teams Exist
-//   if (race.teams && race.teams.length > 0) {
-//     throw new BadRequestError('Cannot delete a race with assigned teams. Unassign teams first.');
-//   }
-
-//   await race.deleteOne();
-//   return { message: 'Race deleted successfully' };
-// };
 export const deleteRace = async (raceId: string) => {
   const race = await Race.findById(raceId);
 

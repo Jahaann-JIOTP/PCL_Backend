@@ -9,6 +9,7 @@ export interface IRace extends Document {
   createdBy: mongoose.Schema.Types.ObjectId; // Admin who created it
   teams?: mongoose.Schema.Types.ObjectId[]; // Teams that join the race
   event: mongoose.Schema.Types.ObjectId;
+  active_player_no: number; // Number of active players in the race.
 }
 
 const RaceSchema = new Schema<IRace>(
@@ -21,6 +22,7 @@ const RaceSchema = new Schema<IRace>(
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
     teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
     event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true }, // ✅ Required relation to Event
+    active_player_no: { type: Number, required: true, min: 1 }, // ✅ New field
   },
   { timestamps: true }
 );

@@ -5,6 +5,7 @@ import { BadRequestError } from '../utils/apiError';
 import Player, { IPlayer } from '../models/players';
 import Club from '../models/Club';
 import teams from '../models/teams';
+import Race from '../models/Race';
 
 //  Fetch All Events with Their Races
 export const getAllEventsWithRaces = async () => {
@@ -117,7 +118,38 @@ export const assignPlayersToRace = async (
   return { message: 'Players assigned successfully' };
 };
 
+
+
 //  Update Player Status in a Race
+// export const updatePlayerStatusInRace = async (
+//   race_id: string,
+//   event_id: string,
+//   team_id: string,
+//   club_id: string,
+//   player_id: string,
+//   status: 'active' | 'substitute',
+// ) => {
+//   //  Ensure that the assignment exists before updating
+//   const existingAssignment = await RacePlayerAssignment.findOne({
+//     race: race_id,
+//     event: event_id,
+//     team: team_id,
+//     player: player_id,
+//     club: club_id, // Ensure update is within the same club
+//   });
+
+//   if (!existingAssignment) {
+//     throw new BadRequestError('Player is not assigned to this race in this event.');
+//   }
+
+//   //  Update the player's status
+//   existingAssignment.status = status;
+//   await existingAssignment.save();
+
+//   return { message: 'Player status updated successfully' };
+// };
+
+// ✅ Update Player Status in a Race
 export const updatePlayerStatusInRace = async (
   race_id: string,
   event_id: string,
@@ -126,22 +158,44 @@ export const updatePlayerStatusInRace = async (
   player_id: string,
   status: 'active' | 'substitute',
 ) => {
-  //  Ensure that the assignment exists before updating
+  // ✅ Ensure the assignment exists
   const existingAssignment = await RacePlayerAssignment.findOne({
     race: race_id,
     event: event_id,
     team: team_id,
     player: player_id,
-    club: club_id, // Ensure update is within the same club
+    club: club_id, // ✅ Ensure it's within the same club
   });
 
   if (!existingAssignment) {
     throw new BadRequestError('Player is not assigned to this race in this event.');
   }
 
-  //  Update the player's status
+  // ✅ Fetch the race details to get the `active_player_no` limit
+  const race = await Race.findById(race_id);
+  if (!race) {
+    throw new BadRequestError('Race not found.');
+  }
+  const activePlayerLimit = race.active_player_no; // ✅ Get active player limit
+
+  // ✅ Count current "active" players in this race & team
+  const activePlayersCount = await RacePlayerAssignment.countDocuments({
+    race: race_id,
+    event: event_id,
+    team: team_id,
+    status: 'active',
+  });
+
+  // ✅ If updating to "active", check if the limit is already reached
+  if (status === 'active' && activePlayersCount >= activePlayerLimit) {
+    throw new BadRequestError(
+      `This race already has ${activePlayerLimit} active players. Please switch an existing active player to substitute first.`
+    );
+  }
+
+  // ✅ Update the player's status
   existingAssignment.status = status;
   await existingAssignment.save();
 
-  return { message: 'Player status updated successfully' };
+  return { message: 'Player status updated successfully.' };
 };

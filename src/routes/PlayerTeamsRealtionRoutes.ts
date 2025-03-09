@@ -20,12 +20,9 @@ relationRouter.get('/check-delete/:player_cnic', protect, checkBeforeDelete);
 //  Delete a player only if unassigned
 relationRouter.delete('/delete/:player_cnic', protect, removePlayer);
 
-
-
     // --------------- APIS For Teams assignation in Races -------------------------------
 // Team Assignment in Race
 relationRouter.post("/race/assign-team", protect, assignTeamToRace);
-
 
 // ✅ Get Teams Assigned to a Race in a Specific Event
 relationRouter.get("/race/assigned-teams", getAssignedTeamsController);

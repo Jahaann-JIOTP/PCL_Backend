@@ -143,19 +143,34 @@ export const getAssignedTeamsController = asyncWrapper(async (req: Authenticated
 });
 
 // ✅ Get Unassigned Teams for a Specific Event (Only for Club)
+// export const getUnassignedTeamsController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+//   if (!req.club?.id) {
+//     throw new BadRequestError("Club authentication failed.");
+//   }
+
+//   const { event_id } = req.query;
+//   if (!event_id) {
+//     throw new BadRequestError("Event ID is required.");
+//   }
+
+//   const unassignedTeams = await getUnassignedTeams(event_id as string, req.club.id);
+//   return new SuccessResponse(unassignedTeams, "Unassigned teams retrieved successfully.");
+// });
+// ✅ Get Unassigned Teams for a Specific Event & Race (Only for Club)
 export const getUnassignedTeamsController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   if (!req.club?.id) {
     throw new BadRequestError("Club authentication failed.");
   }
 
-  const { event_id } = req.query;
-  if (!event_id) {
-    throw new BadRequestError("Event ID is required.");
+  const { event_id, race_id } = req.query;
+  if (!event_id || !race_id) {
+    throw new BadRequestError("Event ID and Race ID are required.");
   }
 
-  const unassignedTeams = await getUnassignedTeams(event_id as string, req.club.id);
+  const unassignedTeams = await getUnassignedTeams(event_id as string, race_id as string, req.club.id);
   return new SuccessResponse(unassignedTeams, "Unassigned teams retrieved successfully.");
 });
+
 
 
 // ✅ API: Get Players with Status for a Specific Team, Event & Race

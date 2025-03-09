@@ -14,32 +14,38 @@ import Event from '../models/Event';
 
 //   const { name, type, distance, date, time, event_id } = req.body;
 
-//   //  Validate required fields
+//   // ✅ Validate required fields
 //   if (!name || !type || !distance || !date || !time || !event_id) {
 //     throw new BadRequestError('All fields including event_id are required');
 //   }
 
-//   //  Ensure the event exists before adding a race
+//   // ✅ Ensure the event exists before adding a race
 //   const eventExists = await Event.findById(event_id);
 //   if (!eventExists) {
 //     throw new BadRequestError('Event not found. Please provide a valid event_id.');
 //   }
 
-//   //  Create the race linked to the event
+//   // ✅ Create the race linked to the event
 //   const race = await createRace(name, type, distance, date, time, req.club.id, event_id);
 
 //   return new SuccessResponse(race, 'Race created successfully');
 // });
+
 export const addNewRace = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   if (!req.club?.id || req.club.role !== 'admin') {
     throw new BadRequestError('Only Admins can create races');
   }
 
-  const { name, type, distance, date, time, event_id } = req.body;
+  const { name, type, distance, date, time, event_id, active_player_no } = req.body;
 
   // ✅ Validate required fields
-  if (!name || !type || !distance || !date || !time || !event_id) {
-    throw new BadRequestError('All fields including event_id are required');
+  if (!name || !type || !distance || !date || !time || !event_id || !active_player_no) {
+    throw new BadRequestError('All fields including event_id and active_player_no are required');
+  }
+
+  // ✅ Ensure `active_player_no` is a positive number
+  if (typeof active_player_no !== 'number' || active_player_no < 1) {
+    throw new BadRequestError('active_player_no must be a valid positive number');
   }
 
   // ✅ Ensure the event exists before adding a race
@@ -49,7 +55,7 @@ export const addNewRace = asyncWrapper(async (req: AuthenticatedRequest, res: Re
   }
 
   // ✅ Create the race linked to the event
-  const race = await createRace(name, type, distance, date, time, req.club.id, event_id);
+  const race = await createRace(name, type, distance, date, time, req.club.id, event_id, active_player_no);
 
   return new SuccessResponse(race, 'Race created successfully');
 });
