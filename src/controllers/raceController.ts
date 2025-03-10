@@ -78,6 +78,7 @@ export const getRaces = asyncWrapper(async (req: Request, res: Response) => {
 //   return new SuccessResponse(races, `Races for event ${eventName} retrieved successfully`);
 // });
 
+
 // ✅ Get All Races in an Event with Teams & Players
 export const getEventRaces = asyncWrapper(async (req: Request, res: Response) => {
   const { eventName } = req.params;

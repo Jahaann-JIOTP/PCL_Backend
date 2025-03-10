@@ -464,7 +464,7 @@ export const getUnassignedTeams = async (event_id: string, race_id: string, club
   }
 
   const womenOnlyRaces = [
-    // "Road Race Women Only",
+    "Road Race Women Only",
     "Road - women",
     "Individual Time Trial Women Only",
     "Team Time Trial Women Only",
