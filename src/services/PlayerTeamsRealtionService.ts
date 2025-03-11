@@ -561,3 +561,54 @@ export const getTeamPlayersWithStatus = async (team_id: string, event_id: string
 
   return playersWithStatus;
 };
+
+// Get the missing races array which are not yet assign to a team
+
+export const getMissingRacesForTeam = async (team_id: string, event_id: string) => {
+  // ✅ Step 1: Fetch the Team to Get its Type
+  const team = await Team.findById(team_id).select("team_name team_type");
+  if (!team) {
+    throw new BadRequestError("Team not found.");
+  }
+
+  const isWomenOnlyTeam = team.team_type === "women-only";
+
+  // ✅ Step 2: Define the Expected Race Types Based on Team Type
+  const expectedRaceTypes = isWomenOnlyTeam
+    ? ["Road Race Women Only", "Team Time Trial Women Only", "Individual Time Trial Women Only"]
+    : ["Road Race Mix", "Team Time Trial Mix", "Individual Time Trial Mix"];
+
+  // ✅ Step 3: Get All Races in This Event Matching the Expected Types
+  const allRaces = await Race.find({
+    event: event_id,
+    type: { $in: expectedRaceTypes },
+  })
+    .select("_id name type")
+    .lean();
+
+  // ✅ Step 4: Fetch Races This Team Is Already Assigned To (Using RaceTeamAssignment)
+  const assignedRaceIds = await RaceTeamAssignment.find({
+    team: new mongoose.Types.ObjectId(team_id), // Ensure it's treated as ObjectId
+    event: new mongoose.Types.ObjectId(event_id),
+  })
+    .distinct("race"); // Get all race ObjectIds assigned to this team
+
+  // ✅ Convert ObjectId array to String array for proper comparison
+  const assignedRaceIdsSet = new Set(assignedRaceIds.map((id) => id.toString()));
+
+  // ✅ Step 5: Find Races That Are Not Yet Assigned
+  const missingRaces = allRaces.filter((race) => !assignedRaceIdsSet.has(race._id.toString()));
+
+  // ✅ Step 6: Return the Missing Races
+  return {
+    team_id: team_id,
+    team_name: team.team_name,
+    missing_races: missingRaces.map((race) => ({
+      race_id: race._id,
+      name: race.name,
+      type: race.type,
+    })),
+  };
+};
+
+

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService,  getPlayersByFilter, getTeamPlayersWithStatus, getTeamsAndPlayersForRace, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
+import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService,  getMissingRacesForTeam,  getPlayersByFilter, getTeamPlayersWithStatus, getTeamsAndPlayersForRace, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
@@ -142,20 +142,6 @@ export const getAssignedTeamsController = asyncWrapper(async (req: Authenticated
   return new SuccessResponse(teamsWithPlayers, "Teams and players retrieved successfully.");
 });
 
-// ✅ Get Unassigned Teams for a Specific Event (Only for Club)
-// export const getUnassignedTeamsController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
-//   if (!req.club?.id) {
-//     throw new BadRequestError("Club authentication failed.");
-//   }
-
-//   const { event_id } = req.query;
-//   if (!event_id) {
-//     throw new BadRequestError("Event ID is required.");
-//   }
-
-//   const unassignedTeams = await getUnassignedTeams(event_id as string, req.club.id);
-//   return new SuccessResponse(unassignedTeams, "Unassigned teams retrieved successfully.");
-// });
 // ✅ Get Unassigned Teams for a Specific Event & Race (Only for Club)
 export const getUnassignedTeamsController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   if (!req.club?.id) {
@@ -187,3 +173,16 @@ export const getPlayersWithStatus = asyncWrapper(async (req: AuthenticatedReques
 });
 
 
+
+// Get the missing races array which are not yet assign to a team
+
+export const getMissingRacesForTeamController = asyncWrapper(async (req: Request, res: Response) => {
+  const { team_id, event_id } = req.query;
+
+  if (!team_id || !event_id) {
+    throw new BadRequestError("Team ID and Event ID are required.");
+  }
+
+  const result = await getMissingRacesForTeam(team_id as string, event_id as string);
+  return new SuccessResponse(result, "Missing races retrieved successfully.");
+});
