@@ -439,40 +439,6 @@ export const getTeamsAndPlayersForRace = async (event_id: string, race_id: strin
 };
 
 // ✅ Fetch Teams NOT Assigned to a Specific Race in an Event
-// export const getUnassignedTeams = async (event_id: string, race_id: string, club_id: string) => {
-//   // ✅ Step 1: Find the Race Type for Validation
-//   const race = await Race.findById(race_id).select("type");
-//   if (!race) {
-//     throw new BadRequestError("Race not found.");
-//   }
-
-//   const womenOnlyRaces = [
-//     "Road Race Women Only",
-//     "Road - women",
-//     "Individual Time Trial Women Only",
-//     "Team Time Trial Women Only",
-//   ];
-
-//   const isWomenOnlyRace = womenOnlyRaces.includes(race.type);
-
-//   // ✅ Step 2: Get All Teams Already Assigned to This Race
-//   const assignedTeams = await RaceTeamAssignment.find({ event: event_id, race: race_id }).distinct("team");
-
-//   // ✅ Step 3: Find Teams NOT Assigned to This Race in the Event
-//   const teamFilter: any = {
-//     club: club_id,
-//     _id: { $nin: assignedTeams }, // Exclude already assigned teams
-//     team_type: isWomenOnlyRace ? "women-only" : "mix", // ✅ Apply gender-based filter
-//   };
-
-//   const unassignedTeams = await Team.find(teamFilter).select("_id team_name team_type club");
-
-//   if (!unassignedTeams || unassignedTeams.length === 0) {
-//     throw new BadRequestError("No unassigned teams found.");
-//   }
-
-//   return unassignedTeams;
-// };
 
 export const getUnassignedTeams = async (event_id: string, race_id: string, club_id: string) => {
   // ✅ Step 1: Find the Race Type for Validation
