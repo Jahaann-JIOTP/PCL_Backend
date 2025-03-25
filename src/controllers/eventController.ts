@@ -3,7 +3,7 @@ import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { BadRequestError } from '../utils/apiError';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
-import { createEvent, deleteEvent, getAllEvents, getEventByName, updateEvent } from '../services/eventService';
+import { createEvent, deleteEvent, getAllEvents, getEventByName, getEventConfig, updateEvent, updateEventConfig } from '../services/eventService';
 
 //  Add New Event (Admin Only)
 export const addNewEvent = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
@@ -32,8 +32,6 @@ export const updateEventDetails = asyncWrapper(async (req: AuthenticatedRequest,
   return new SuccessResponse(updatedEvent, 'Event updated successfully');
 });
 
-
-
 //  Get All Events (Admin Only)
 export const getEvents = asyncWrapper(async (req: Request, res: Response) => {
   const events = await getAllEvents();
@@ -47,8 +45,6 @@ export const getSingleEvent = asyncWrapper(async (req: Request, res: Response) =
   return new SuccessResponse(event, 'Event retrieved successfully');
 });
 
-
-
 //  Delete Event (Admin Only)
 export const deleteEventController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
   if (!req.club?.id || req.club.role !== 'admin') {
@@ -59,3 +55,30 @@ export const deleteEventController = asyncWrapper(async (req: AuthenticatedReque
   const result = await deleteEvent(eventName);
   return new SuccessResponse(result, 'Event deleted successfully');
 });
+
+
+  // ADMIN ONLY CONFIGURATIONS
+
+export const updateEventConfigController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.club?.id || req.club.role !== 'admin') {
+    throw new BadRequestError('Only Admins can update event config');
+  }
+
+  const { eventId } = req.params;
+  const configUpdates = req.body;
+
+  const updated = await updateEventConfig(eventId, configUpdates);
+  return new SuccessResponse(updated, 'Event configuration updated successfully');
+});
+
+export const getEventConfigController = asyncWrapper(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.club?.id || req.club.role !== 'admin') {
+    throw new BadRequestError('Only Admins can view event config');
+  }
+
+  const { eventId } = req.params;
+  const event = await getEventConfig(eventId);
+  return new SuccessResponse(event, 'Event configuration fetched successfully');
+});
+
+

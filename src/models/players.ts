@@ -41,6 +41,7 @@ const PlayerSchema = new Schema<IPlayer>(
 
     // ✅ Bib Number (Must Be Unique)
     bib_number: { type: Number, unique: true, sparse: true, default: null },
+
   },
   { timestamps: true }
 );

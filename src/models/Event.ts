@@ -10,6 +10,13 @@ export interface IEvent extends Document {
   races?: mongoose.Schema.Types.ObjectId[];
   start_date?: Date; //  Optional start date
   end_date?: Date; //  Optional end date
+
+    // ✅ New Added Fields
+    registration_enabled?: boolean;
+    publish_teams?: boolean;
+    publish_leaderboard_portal?: boolean;
+    publish_leaderboard_website?: boolean;
+    locked_races?: mongoose.Schema.Types.ObjectId[];
 }
 
 const EventSchema = new Schema<IEvent>(
@@ -23,6 +30,14 @@ const EventSchema = new Schema<IEvent>(
     races: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Race' }],
     start_date: { type: Date, default: null }, //  Optional start date
     end_date: { type: Date, default: null }, //  Optional end date
+
+    // Added Attributes
+   registration_enabled: { type: Boolean, default: true },
+   publish_teams: { type: Boolean, default: false },
+   publish_leaderboard_portal: { type: Boolean, default: false },
+   publish_leaderboard_website: { type: Boolean, default: false },
+   locked_races: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Race', default: [] }],
+
   },
   { timestamps: true }
 );

@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware';
-import { addNewEvent, deleteEventController, getEvents, getSingleEvent, updateEventDetails } from '../controllers/eventController';
+import { addNewEvent, deleteEventController, getEventConfigController, getEvents, getSingleEvent, updateEventConfigController, updateEventDetails } from '../controllers/eventController';
 
 
 const eventRouter = express.Router();
@@ -19,5 +19,10 @@ eventRouter.put('/edit/:eventName', protect, adminOnly, updateEventDetails);
 
 //  Delete Event (Admin Only)
 eventRouter.delete('/delete-event/:eventName', protect, adminOnly, deleteEventController);
+
+// ✅ Admin-only routes
+eventRouter.put('/config-update/:eventId', protect, adminOnly, updateEventConfigController);
+eventRouter.get('/config-get/:eventId', protect, adminOnly, getEventConfigController);
+
 
 export default eventRouter;

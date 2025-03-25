@@ -39,8 +39,6 @@ export const createEvent = async (
     return event;
   };
   
-  
-
 //  Get All Events (Admin Only)
 export const getAllEvents = async () => {
   return await Event.find().select('event_name year location image status races end_date start_date').populate('races', 'name type distance date time');
@@ -69,4 +67,41 @@ export const deleteEvent = async (eventName: string) => {
 
   await event.deleteOne();
   return { message: 'Event deleted successfully' };
+};
+
+
+
+    // ADMIN ONLY CONFIGURATIONS
+export const updateEventConfig = async (eventId: string, config: any) => {
+  const updated = await Event.findByIdAndUpdate(
+    eventId,
+    {
+      $set: {
+        registration_enabled: config.registration_enabled,
+        publish_teams: config.publish_teams,
+        publish_leaderboard_portal: config.publish_leaderboard_portal,
+        publish_leaderboard_website: config.publish_leaderboard_website,
+        locked_races: config.locked_races || [],
+      },
+    },
+    { new: true }
+  );
+
+  if (!updated) {
+    throw new NotFoundError('Event not found');
+  }
+
+  return updated;
+};
+
+export const getEventConfig = async (eventId: string) => {
+  const event = await Event.findById(eventId).select(
+    'event_name registration_enabled publish_teams publish_leaderboard_portal publish_leaderboard_website locked_races'
+  );
+
+  if (!event) {
+    throw new NotFoundError('Event not found');
+  }
+
+  return event;
 };
