@@ -12,6 +12,7 @@ import adminRouter from './routes/adminRoutes';
 import raceRouter from './routes/raceRoutes';
 import eventRouter from './routes/eventRoutes';
 import eventRaceRouter from './routes/eventRaceRoutes';
+import AssignBibRouter from './routes/bibRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -54,6 +55,8 @@ app.use('/api/admin', adminRouter);
 app.use('/api/races', raceRouter);
 app.use('/api/events', eventRouter);
 app.use('/api/event-teams', eventRaceRouter);
+app.use('/api/assign-bibNo', AssignBibRouter);
+
 
 
 // Global Error Handler

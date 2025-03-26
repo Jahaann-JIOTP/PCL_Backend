@@ -10,7 +10,7 @@ import Race from '../models/Race';
 //  Fetch All Events with Their Races
 export const getAllEventsWithRaces = async () => {
   const events = await Event.find()
-    .select('event_name year location status races')
+    .select('event_name year location status races registration_enabled')
     .populate({
       path: 'races', //  Ensure Races are Populated
       select: 'name type distance date time teams',
@@ -28,6 +28,7 @@ export const getAllEventsWithRaces = async () => {
     year: event.year,
     location: event.location,
     status: event.status,
+    registration_enabled: event.registration_enabled,
     races: event.races
       ? event.races.map((race: any) => ({
           _id: race._id,

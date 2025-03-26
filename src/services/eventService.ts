@@ -69,8 +69,6 @@ export const deleteEvent = async (eventName: string) => {
   return { message: 'Event deleted successfully' };
 };
 
-
-
     // ADMIN ONLY CONFIGURATIONS
 export const updateEventConfig = async (eventId: string, config: any) => {
   const updated = await Event.findByIdAndUpdate(

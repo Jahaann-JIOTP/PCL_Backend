@@ -2,7 +2,6 @@ import express from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware';
 import { addNewEvent, deleteEventController, getEventConfigController, getEvents, getSingleEvent, updateEventConfigController, updateEventDetails } from '../controllers/eventController';
 
-
 const eventRouter = express.Router();
 
 //  Create a New Event (Admin Only)
