@@ -25,7 +25,7 @@ relationRouter.delete('/delete/:player_cnic', protect, removePlayer);
 relationRouter.post("/race/assign-team", protect, assignTeamToRace);
 
 // ✅ Get Teams Assigned to a Race in a Specific Event
-relationRouter.get("/race/assigned-teams", getAssignedTeamsController);
+relationRouter.get("/race/assigned-teams",protect, getAssignedTeamsController);
 
 // ✅ Get Unassigned Teams for a Specific Event (Club Portal)
 relationRouter.get("/race/unassigned-teams", protect, getUnassignedTeamsController);
