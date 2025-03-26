@@ -553,8 +553,6 @@ export const getUnassignedTeams = async (event_id: string, race_id: string, club
 };
 
 
-
-
 // ✅ Fetch Players of a Team with Their Status for a Specific Event & Race
 export const getTeamPlayersWithStatus = async (team_id: string, event_id: string, race_id: string) => {
   // ✅ Step 1: Fetch all players of the given team
@@ -641,4 +639,108 @@ export const getMissingRacesForTeam = async (team_id: string, event_id: string) 
   };
 };
 
+
+
+// FOR BIB ASSIGNMENT TAB
+
+// ✅ Get All Races in Event with Teams & Players (with status, bib no, and club info)
+export const getFullEventRaceData = async (event_id: string) => {
+  // ✅ Step 1: Fetch all races of the event
+  const races = await Race.find({ event: event_id })
+    .select('_id name type distance date time')
+    .lean();
+
+  if (!races || races.length === 0) {
+    throw new BadRequestError("No races found for this event.");
+  }
+
+  const raceIds = races.map(r => r._id);
+
+  // ✅ Step 2: Fetch all team assignments
+  const allAssignments = await RaceTeamAssignment.find({ event: event_id, race: { $in: raceIds } })
+    .select('race team club')
+    .lean();
+
+  const teamIds = allAssignments.map(a => a.team);
+  const raceTeamMap = new Map<string, { team: string, club: string }[]>();
+
+  allAssignments.forEach((a) => {
+    const r = a.race.toString();
+    if (!raceTeamMap.has(r)) raceTeamMap.set(r, []);
+    raceTeamMap.get(r)?.push({ team: a.team.toString(), club: a.club.toString() });
+  });
+
+  // ✅ Step 3: Fetch team details
+  const teams = await Team.find({ _id: { $in: teamIds } })
+    .select('_id team_name team_type club')
+    .populate('club', 'name')
+    .lean();
+
+  const players = await Player.find({ team: { $in: teamIds } })
+    .select('_id name gender cnic team emergency_contact weight')
+    .lean();
+
+  const playerIds = players.map(p => p._id);
+
+  const assignments = await RacePlayerAssignment.find({ player: { $in: playerIds }, event: event_id })
+    .select('player race status')
+    .lean();
+
+  const bibs = await BibAssignment.find({ player: { $in: playerIds }, event: event_id })
+    .select('player bib_number')
+    .lean();
+
+  const statusMap = new Map(assignments.map(a => [`${a.player}-${a.race}`, a.status]));
+  const bibMap = new Map(bibs.map(b => [b.player.toString(), b.bib_number]));
+
+  const teamMap = new Map();
+  teams.forEach(t => teamMap.set(t._id.toString(), t));
+
+  const playerTeamMap = new Map();
+  teams.forEach(t => playerTeamMap.set(t._id.toString(), []));
+
+  players.forEach(p => {
+    if (playerTeamMap.has(p.team?.toString())) {
+      playerTeamMap.get(p.team?.toString()).push({
+        _id: p._id,
+        player_name: p.name,
+        bib_number: bibMap.get(p._id.toString()) || 'N/A',
+        gender: p.gender,
+        cnic: p.cnic,
+        weight: p.weight,
+        emergency_contact: p.emergency_contact,
+      });
+    }
+  });
+
+  return races.map(race => {
+    const teamsInRace = raceTeamMap.get(race._id.toString()) || [];
+    return {
+      _id: race._id,
+      name: race.name,
+      type: race.type,
+      distance: race.distance,
+      date: race.date,
+      time: race.time,
+      teams: teamsInRace.map(({ team, club }) => {
+        const teamData = teamMap.get(team);
+        const players = playerTeamMap.get(team) || [];
+        const playersWithStatus = players.map(p => ({
+          ...p,
+          status: statusMap.get(`${p._id}-${race._id}`) || null
+        }));
+        return {
+          _id: teamData._id,
+          team_name: teamData.team_name,
+          team_type: teamData.team_type,
+          club: {
+            _id: teamData.club?._id || club,
+            name: teamData.club?.name || 'Unknown',
+          },
+          players: playersWithStatus
+        };
+      })
+    };
+  });
+};
 

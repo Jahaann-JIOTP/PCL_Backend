@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService,  getMissingRacesForTeam,  getPlayersByFilter, getTeamPlayersWithStatus, getTeamsAndPlayersForRace, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
+import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService,  getFullEventRaceData,  getMissingRacesForTeam,  getPlayersByFilter, getTeamPlayersWithStatus, getTeamsAndPlayersForRace, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
@@ -200,4 +200,18 @@ export const getMissingRacesForTeamController = asyncWrapper(async (req: Request
 
   const result = await getMissingRacesForTeam(team_id as string, event_id as string);
   return new SuccessResponse(result, "Missing races retrieved successfully.");
+});
+
+
+
+// ✅ API: Get Full Race Event Data (Admin Portal)
+export const getAllRaceDataByEvent = asyncWrapper(async (req: Request, res: Response) => {
+  const { event_id } = req.params;
+
+  if (!event_id) {
+    throw new BadRequestError("Event ID is required.");
+  }
+
+  const data = await getFullEventRaceData(event_id);
+  return new SuccessResponse(data, "Full race event data retrieved successfully.");
 });
