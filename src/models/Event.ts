@@ -16,8 +16,8 @@ export interface IEvent extends Document {
     publish_teams?: boolean;
     publish_leaderboard_portal?: boolean;
     publish_leaderboard_website?: boolean;
-    locked_races?: mongoose.Schema.Types.ObjectId[];
-}
+ // ✅ New Race Lock Map
+     race_lock_status?: Map<string, boolean>;}
 
 const EventSchema = new Schema<IEvent>(
   {
@@ -36,8 +36,12 @@ const EventSchema = new Schema<IEvent>(
    publish_teams: { type: Boolean, default: false },
    publish_leaderboard_portal: { type: Boolean, default: false },
    publish_leaderboard_website: { type: Boolean, default: false },
-   locked_races: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Race', default: [] }],
-
+   race_lock_status: {
+    type: Map,
+    of: Boolean,
+    default: {},
+  },
+  
   },
   { timestamps: true }
 );

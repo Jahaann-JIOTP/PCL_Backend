@@ -1,4 +1,5 @@
 import Event, { IEvent } from '../models/Event';
+import Race from '../models/Race';
 import { BadRequestError, NotFoundError } from '../utils/apiError';
 
 export const createEvent = async (
@@ -70,36 +71,84 @@ export const deleteEvent = async (eventName: string) => {
 };
 
     // ADMIN ONLY CONFIGURATIONS
+// export const updateEventConfig = async (eventId: string, config: any) => {
+//   const updated = await Event.findByIdAndUpdate(
+//     eventId,
+//     {
+//       $set: {
+//         registration_enabled: config.registration_enabled,
+//         publish_teams: config.publish_teams,
+//         publish_leaderboard_portal: config.publish_leaderboard_portal,
+//         publish_leaderboard_website: config.publish_leaderboard_website,
+//         race_lock_status: config.race_lock_status || {},
+//       },
+//     },
+//     { new: true }
+//   );
+
+//   if (!updated) {
+//     throw new NotFoundError('Event not found');
+//   }
+
+//   return updated;
+// };
 export const updateEventConfig = async (eventId: string, config: any) => {
-  const updated = await Event.findByIdAndUpdate(
-    eventId,
-    {
-      $set: {
-        registration_enabled: config.registration_enabled,
-        publish_teams: config.publish_teams,
-        publish_leaderboard_portal: config.publish_leaderboard_portal,
-        publish_leaderboard_website: config.publish_leaderboard_website,
-        locked_races: config.locked_races || [],
-      },
-    },
-    { new: true }
-  );
-
-  if (!updated) {
-    throw new NotFoundError('Event not found');
-  }
-
-  return updated;
-};
-
-export const getEventConfig = async (eventId: string) => {
-  const event = await Event.findById(eventId).select(
-    'event_name registration_enabled publish_teams publish_leaderboard_portal publish_leaderboard_website locked_races'
-  );
+  const event = await Event.findById(eventId);
 
   if (!event) {
     throw new NotFoundError('Event not found');
   }
 
-  return event;
+  // ✅ Only update fields if provided
+  if (typeof config.registration_enabled === 'boolean') {
+    event.registration_enabled = config.registration_enabled;
+  }
+  if (typeof config.publish_teams === 'boolean') {
+    event.publish_teams = config.publish_teams;
+  }
+  if (typeof config.publish_leaderboard_portal === 'boolean') {
+    event.publish_leaderboard_portal = config.publish_leaderboard_portal;
+  }
+  if (typeof config.publish_leaderboard_website === 'boolean') {
+    event.publish_leaderboard_website = config.publish_leaderboard_website;
+  }
+
+  // ✅ Safely merge race_lock_status
+  const existing = event.race_lock_status instanceof Map
+    ? Object.fromEntries(event.race_lock_status)
+    : event.race_lock_status || {};
+
+  const mergedStatus = {
+    ...existing,
+    ...(config.race_lock_status || {})
+  };
+
+  event.race_lock_status = mergedStatus;
+
+  const updated = await event.save();
+  return updated;
+};
+
+
+
+export const getEventConfig = async (eventId: string) => {
+  // 1. Fetch the event
+  const event = await Event.findById(eventId)
+    .select('event_name registration_enabled publish_teams publish_leaderboard_portal publish_leaderboard_website race_lock_status races')
+    .lean();
+
+  if (!event) {
+    throw new NotFoundError('Event not found');
+  }
+
+  // 2. Fetch race details
+  const races = await Race.find({ _id: { $in: event.races } })
+    .select('_id name type')
+    .lean();
+
+  // 3. Add races in response
+  return {
+    ...event,
+    races, // override the original `races` array of just ObjectIds
+  };
 };
