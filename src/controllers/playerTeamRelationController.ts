@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService,  getFullEventRaceData,  getMissingRacesForTeam,  getPlayersByFilter, getTeamPlayersWithStatus, getTeamsAndPlayersForRace, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
+import { assignMultiplePlayersToTeam, assignTeam, checkPlayerAssignment, deletePlayerService,  getFullEventRaceData,  getMissingRacesForTeam,  getPlayersByFilter, getPublishedRaceDataByEvent, getTeamPlayersWithStatus, getTeamsAndPlayersForRace, getUnassignedTeams, unassignPlayerFromTeam } from '../services/PlayerTeamsRealtionService';
 import { asyncWrapper } from '../utils/asyncWrapper';
 import { SuccessResponse } from '../utils/successResponse';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
@@ -42,13 +42,12 @@ export const getFiltersPlayers = asyncWrapper(async (req: AuthenticatedRequest, 
   };
 
 
-
   //  const teamType = 'women-only';
 
   //  Fetch players of the club based on query params (Pass teamType)
-  const players = await getPlayersByFilter(clubId, team_name, assigned_team, teamTypeKey);
+  const { players, registration_enabled } = await getPlayersByFilter(clubId, team_name, assigned_team, teamTypeKey);
 
-  return new SuccessResponse(players, 'Players retrieved successfully');
+  return new SuccessResponse({ registration_enabled, players }, 'Players retrieved successfully');
 });
 
 
@@ -204,7 +203,7 @@ export const getMissingRacesForTeamController = asyncWrapper(async (req: Request
 
 
 
-// ✅ API: Get Full Race Event Data (Admin Portal)
+// ✅ API: Get Full Race Event Data (for bib no configuration)
 export const getAllRaceDataByEvent = asyncWrapper(async (req: Request, res: Response) => {
   const { event_id } = req.params;
 
@@ -215,3 +214,42 @@ export const getAllRaceDataByEvent = asyncWrapper(async (req: Request, res: Resp
   const data = await getFullEventRaceData(event_id);
   return new SuccessResponse(data, "Full race event data retrieved successfully.");
 });
+
+// controllers/raceController.ts
+export const getPublishedTeamsByEvent = asyncWrapper(async (req: Request, res: Response) => {
+  const { event_id } = req.params;
+  const { gender } = req.query;
+
+  if (!event_id) {
+    throw new BadRequestError("Event ID is required.");
+  }
+
+  const raceTypes = {
+    mix: [
+      "Road Race Mix",
+      "Team Time Trial Mix",
+      "Individual Time Trial Mix"
+    ],
+    women: [
+      "Road Race Women Only",
+      "Team Time Trial Women Only",
+      "Individual Time Trial Women Only"
+    ]
+  };
+
+  const validGender = gender === "mix" || gender === "women";
+  const allowedRaceTypes = validGender ? raceTypes[gender as "mix" | "women"] : undefined;
+
+  const result = await getPublishedRaceDataByEvent(event_id, allowedRaceTypes);
+
+  if (!result) {
+    return res.status(200).json({
+      success: true,
+      message: "No teams are published yet for this event.",
+      data: []
+    });
+  }
+
+  return new SuccessResponse(result, "Published race teams retrieved successfully.");
+});
+

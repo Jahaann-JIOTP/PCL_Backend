@@ -1,5 +1,5 @@
 import express from 'express';
-import { assignPlayers, assignTeamToRace, checkBeforeDelete, getAllRaceDataByEvent, getAssignedTeamsController, getFiltersPlayers, getMissingRacesForTeamController, getPlayersWithStatus, getUnassignedTeamsController, removePlayer, unassignPlayer } from '../controllers/playerTeamRelationController';
+import { assignPlayers, assignTeamToRace, checkBeforeDelete, getAllRaceDataByEvent, getAssignedTeamsController, getFiltersPlayers, getMissingRacesForTeamController, getPlayersWithStatus, getPublishedTeamsByEvent, getUnassignedTeamsController, removePlayer, unassignPlayer } from '../controllers/playerTeamRelationController';
 import { protect } from '../middleware/authMiddleware';
 
 const relationRouter = express.Router();
@@ -39,5 +39,8 @@ relationRouter.get("/race/missing-races", protect, getMissingRacesForTeamControl
 
 // API For getting the full events race teams and players details
 relationRouter.get("/race/full-event-bibassign/:event_id", getAllRaceDataByEvent);
+
+// API to get all the races teams apnd their players on publish and unpublished flag 
+relationRouter.get("/race/event-teams-details/:event_id", getPublishedTeamsByEvent);
 
 export default relationRouter;

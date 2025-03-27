@@ -163,14 +163,18 @@ export const getPlayersByFilter = async (
   // console.log('Applying filter: ', filter); //  Debugging
 
   //  Fetch players based on the filter
-  const players = await Player.find(filter).select('name cnic gender assigned_team age contact fitness_category bib_number').lean();
+   const players = await Player.find(filter).select('name cnic gender assigned_team age contact fitness_category bib_number').lean();
   // console.log(players);
+    const allEvents = await Event.find().select("registration_enabled").lean();
+
+    const registrationEnabled = allEvents.every(event => event.registration_enabled === true);
+
 
   if (!players.length) {
     throw new BadRequestError('No players found with the given criteria');
   }
 
-  return players;
+  return { players, registration_enabled: registrationEnabled };
 };
 
 //  Unassign a Player from a Team
@@ -742,5 +746,200 @@ export const getFullEventRaceData = async (event_id: string) => {
       })
     };
   });
+};
+
+
+
+// fOR Publish  teams and unpublish teams from admin portal - Get api on that flag
+// export const getPublishedRaceDataByEvent = async (event_id: string) => {
+//   // 1. Check if Event exists and if publish_teams is true
+//   const event = await Event.findById(event_id).lean();
+
+//   if (!event || !event.publish_teams) {
+//     return null; // controller will handle the response message
+//   }
+
+//   // 2. Get all races for this event
+//   const races = await Race.find({ event: event_id }).lean();
+//   const raceIds = races.map(r => r._id);
+
+//   // 3. Get all assignments for races in this event
+//   const raceAssignments = await RaceTeamAssignment.find({ event: event_id })
+//     .select("team race club")
+//     .lean();
+
+//   const teamIds = raceAssignments.map(a => a.team);
+//   const teamClubMap = new Map(raceAssignments.map(a => [a.team.toString(), a.club.toString()]));
+
+//   // 4. Get Teams + their Clubs
+//   const teams = await Team.find({ _id: { $in: teamIds } })
+//     .select("_id team_name team_type club")
+//     .lean();
+
+//   const clubIds = teams.map(t => teamClubMap.get(t._id.toString()));
+//   const clubs = await Club.find({ _id: { $in: clubIds } }).select("_id name").lean();
+//   const clubMap = new Map(clubs.map(club => [club._id.toString(), club.name]));
+
+//   // 5. Get all Players in those teams
+//   const players = await Player.find({ team: { $in: teamIds } }).lean();
+//   const playerIds = players.map(p => p._id.toString());
+
+//   // 6. Get Player Status
+//   const playerStatuses = await RacePlayerAssignment.find({
+//     event: event_id,
+//     race: { $in: raceIds },
+//     player: { $in: playerIds }
+//   }).lean();
+
+//   const statusMap = new Map(
+//     playerStatuses.map(p => [p.player.toString(), p.status])
+//   );
+
+//   // 7. Get Bib Assignments
+//   const bibs = await BibAssignment.find({
+//     event: event_id,
+//     player: { $in: playerIds }
+//   }).lean();
+
+//   const bibMap = new Map(
+//     bibs.map(b => [b.player.toString(), b.bib_number])
+//   );
+
+//   // 8. Group Players by Team
+//   const teamPlayerMap = new Map();
+//   teams.forEach(team => {
+//     const teamPlayers = players.filter(p => p.team?.toString() === team._id.toString()).map(p => ({
+//       _id: p._id,
+//       player_name: p.name,
+//       bib_number: bibMap.get(p._id.toString()) || "N/A",
+//       gender: p.gender,
+//       cnic: p.cnic,
+//       weight: p.weight,
+//       emergency_contact: p.emergency_contact,
+//       status: statusMap.get(p._id.toString()) || null
+//     }));
+//     teamPlayerMap.set(team._id.toString(), teamPlayers);
+//   });
+
+//   // 9. Group Teams under Each Race
+//   const raceMap = new Map();
+//   races.forEach(race => {
+//     raceMap.set(race._id.toString(), {
+//       race_id: race._id,
+//       name: race.name,
+//       type: race.type,
+//       teams: []
+//     });
+//   });
+
+//   for (const assignment of raceAssignments) {
+//     const team = teams.find(t => t._id.toString() === assignment.team.toString());
+//     if (!team) continue;
+
+//     const raceBlock = raceMap.get(assignment.race.toString());
+//     if (raceBlock) {
+//       raceBlock.teams.push({
+//         _id: team._id,
+//         team_name: team.team_name,
+//         team_type: team.team_type,
+//         club_id: assignment.club,
+//         club_name: clubMap.get(assignment.club.toString()) || "N/A",
+//         players: teamPlayerMap.get(team._id.toString()) || []
+//       });
+//     }
+//   }
+
+//   // 10. Return Final Array of Races
+//   return Array.from(raceMap.values());
+// };
+
+export const getPublishedRaceDataByEvent = async (event_id: string, allowedRaceTypes?: string[]) => {
+  const event = await Event.findById(event_id).lean();
+  if (!event || !event.publish_teams) return null;
+
+  // 1. Get all races, apply race-type filter if provided
+  const raceQuery: any = { event: event_id };
+  if (allowedRaceTypes) raceQuery.type = { $in: allowedRaceTypes };
+
+  const races = await Race.find(raceQuery).lean();
+  const raceIds = races.map(r => r._id);
+
+  // 2. Get all team assignments for those races
+  const raceAssignments = await RaceTeamAssignment.find({
+    event: event_id,
+    race: { $in: raceIds },
+  }).select("team race club").lean();
+
+  const teamIds = raceAssignments.map(a => a.team);
+  const teamClubMap = new Map(raceAssignments.map(a => [a.team.toString(), a.club.toString()]));
+
+  // 3. Teams & their Clubs
+  const teams = await Team.find({ _id: { $in: teamIds } }).lean();
+  const clubIds = teams.map(t => teamClubMap.get(t._id.toString()));
+  const clubs = await Club.find({ _id: { $in: clubIds } }).select("_id name").lean();
+  const clubMap = new Map(clubs.map(club => [club._id.toString(), club.name]));
+
+  // 4. Players
+  const players = await Player.find({ team: { $in: teamIds } }).lean();
+  const playerIds = players.map(p => p._id.toString());
+
+  // 5. Player Status
+  const playerStatuses = await RacePlayerAssignment.find({
+    event: event_id,
+    race: { $in: raceIds },
+    player: { $in: playerIds },
+  }).lean();
+
+  const statusMap = new Map(playerStatuses.map(p => [p.player.toString(), p.status]));
+
+  // 6. Bibs
+  const bibs = await BibAssignment.find({ event: event_id, player: { $in: playerIds } }).lean();
+  const bibMap = new Map(bibs.map(b => [b.player.toString(), b.bib_number]));
+
+  // 7. Group Players by Team
+  const teamPlayerMap = new Map();
+  teams.forEach(team => {
+    const teamPlayers = players.filter(p => p.team?.toString() === team._id.toString()).map(p => ({
+      _id: p._id,
+      player_name: p.name,
+      bib_number: bibMap.get(p._id.toString()) || "N/A",
+      gender: p.gender,
+      cnic: p.cnic,
+      weight: p.weight,
+      emergency_contact: p.emergency_contact,
+      status: statusMap.get(p._id.toString()) || null,
+    }));
+    teamPlayerMap.set(team._id.toString(), teamPlayers);
+  });
+
+  // 8. Group teams under each race
+  const raceMap = new Map();
+  races.forEach(race => {
+    raceMap.set(race._id.toString(), {
+      race_id: race._id,
+      name: race.name,
+      type: race.type,
+      teams: [],
+    });
+  });
+
+  for (const assignment of raceAssignments) {
+    const team = teams.find(t => t._id.toString() === assignment.team.toString());
+    if (!team) continue;
+
+    const raceBlock = raceMap.get(assignment.race.toString());
+    if (raceBlock) {
+      raceBlock.teams.push({
+        _id: team._id,
+        team_name: team.team_name,
+        team_type: team.team_type,
+        club_id: assignment.club,
+        club_name: clubMap.get(assignment.club.toString()) || "N/A",
+        players: teamPlayerMap.get(team._id.toString()) || [],
+      });
+    }
+  }
+
+  return Array.from(raceMap.values());
 };
 
