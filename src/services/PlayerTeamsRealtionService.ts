@@ -471,6 +471,16 @@ export const getTeamsAndPlayersForRace = async (event_id: string, race_id: strin
 
   const bibMap = new Map(bibs.map(b => [b.player.toString(), b.bib_number]));
 
+// ✅ Step 9: Get race lock status from Event
+const event = await Event.findById(event_id).select("race_lock_status").lean();
+
+let lock_status = false; // default to false
+if (event?.race_lock_status && typeof event.race_lock_status === "object") {
+  const raceStatus = event.race_lock_status[race_id];
+  lock_status = raceStatus === true;
+}
+
+
   // ✅ Step 7: Group players under teams
   const teamPlayerMap = new Map();
   teams.forEach(team => {
@@ -495,6 +505,7 @@ export const getTeamsAndPlayersForRace = async (event_id: string, race_id: strin
   return {
     race_name: raceInfo.name,
     race_type: raceInfo.type,
+    lock_status, 
     teams: teams.map(team => ({
       _id: team._id,
       team_name: team.team_name,
