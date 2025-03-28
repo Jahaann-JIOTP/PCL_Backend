@@ -424,7 +424,7 @@ return { message: "Team assigned to race successfully, and players assigned dyna
 // ✅ Modified Service: Get Teams and Players for a Specific Race & Event (Scoped to Club + Bib + Race Info)
 export const getTeamsAndPlayersForRace = async (event_id: string, race_id: string, club_id: string) => {
   // ✅ Step 1: Fetch race info
-  const raceInfo = await Race.findById(race_id).select("name type").lean();
+  const raceInfo = await Race.findById(race_id).select("name type active_player_no").lean();
   if (!raceInfo) throw new BadRequestError("Race not found.");
 
   // ✅ Step 2: Fetch all teams assigned to this race + event + club
@@ -459,10 +459,19 @@ export const getTeamsAndPlayersForRace = async (event_id: string, race_id: strin
     player: { $in: playerIds },
     event: event_id,
     race: race_id
-  }).select("player status").lean();
+  }).select("player status group").lean();
 
   const playerStatusMap = new Map(playerAssignments.map(pa => [pa.player.toString(), pa.status]));
 
+  const playerGroupMap = new Map(
+    playerAssignments.map(pa => [pa.player.toString(), pa.group || null])
+  );
+  
+  const shouldIncludeGroup = [
+    "Road Race Mix",
+    "Road Race Women Only"
+  ].includes(raceInfo.type);
+  
   // ✅ Step 6: Get Bib Number Assignments
   const bibs = await BibAssignment.find({
     player: { $in: playerIds },
@@ -488,16 +497,28 @@ if (event?.race_lock_status && typeof event.race_lock_status === "object") {
       team._id.toString(),
       players
         .filter(player => player.team?.toString() === team._id.toString())
-        .map(player => ({
-          _id: player._id,
-          player_name: player.name,
-          bib_number: bibMap.get(player._id.toString()) || "N/A",
-          gender: player.gender,
-          cnic: player.cnic,
-          weight: player.weight,
-          emergency_contact: player.emergency_contact,
-          status: playerStatusMap.get(player._id.toString()) || null
-        }))
+        .map(player => {
+          const base = {
+            _id: player._id,
+            player_name: player.name,
+            bib_number: bibMap.get(player._id.toString()) || "N/A",
+            gender: player.gender,
+            cnic: player.cnic,
+            weight: player.weight,
+            emergency_contact: player.emergency_contact,
+            status: playerStatusMap.get(player._id.toString()) || null,
+          };
+        
+          if (shouldIncludeGroup) {
+            return {
+              ...base,
+              group: playerGroupMap.get(player._id.toString()) || null
+            };
+          }
+        
+          return base;
+        })
+       
     );
   });
 
@@ -505,6 +526,7 @@ if (event?.race_lock_status && typeof event.race_lock_status === "object") {
   return {
     race_name: raceInfo.name,
     race_type: raceInfo.type,
+    active_player_limit: raceInfo.active_player_no || 0,
     lock_status, 
     teams: teams.map(team => ({
       _id: team._id,

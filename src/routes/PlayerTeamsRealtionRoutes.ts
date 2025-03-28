@@ -13,7 +13,6 @@ relationRouter.get('/all', protect, getFiltersPlayers);
 //  Route to Unassign Player (Authenticated Club Required)
 relationRouter.post('/unassign', protect, unassignPlayer);
 
-
 //  Check if a player is assigned before deletion
 relationRouter.get('/check-delete/:player_cnic', protect, checkBeforeDelete);
 
@@ -33,9 +32,7 @@ relationRouter.get("/race/unassigned-teams", protect, getUnassignedTeamsControll
 // ✅ API: Get Players with Status for a Specific Team, Event & Race
 relationRouter.get("/race/players-status", protect, getPlayersWithStatus);
 
-
 relationRouter.get("/race/missing-races", protect, getMissingRacesForTeamController);
-
 
 // API For getting the full events race teams and players details
 relationRouter.get("/race/full-event-bibassign/:event_id", getAllRaceDataByEvent);
