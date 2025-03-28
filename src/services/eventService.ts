@@ -92,6 +92,7 @@ export const deleteEvent = async (eventName: string) => {
 
 //   return updated;
 // };
+
 export const updateEventConfig = async (eventId: string, config: any) => {
   const event = await Event.findById(eventId);
 
@@ -128,8 +129,6 @@ export const updateEventConfig = async (eventId: string, config: any) => {
   const updated = await event.save();
   return updated;
 };
-
-
 
 export const getEventConfig = async (eventId: string) => {
   // 1. Fetch the event

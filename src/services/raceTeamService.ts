@@ -151,52 +151,146 @@ export const assignPlayersToRace = async (
 // };
 
 // ✅ Update Player Status in a Race
-export const updatePlayerStatusInRace = async (
+// export const updatePlayerStatusInRace = async (
+//   race_id: string,
+//   event_id: string,
+//   team_id: string,
+//   club_id: string,
+//   player_id: string,
+//   group: string,
+//   status: 'active' | 'substitute',
+// ) => {
+//   // ✅ Ensure the assignment exists
+//   const existingAssignment = await RacePlayerAssignment.findOne({
+//     race: race_id,
+//     event: event_id,
+//     team: team_id,
+//     player: player_id,
+//     club: club_id, // ✅ Ensure it's within the same club
+//   });
+
+//   if (!existingAssignment) {
+//     throw new BadRequestError('Player is not assigned to this race in this event.');
+//   }
+
+//   // ✅ Fetch the race details to get the `active_player_no` limit
+//   const race = await Race.findById(race_id);
+//   if (!race) {
+//     throw new BadRequestError('Race not found.');
+//   }
+//   const activePlayerLimit = race.active_player_no; // ✅ Get active player limit
+
+//   // ✅ Count current "active" players in this race & team
+//   const activePlayersCount = await RacePlayerAssignment.countDocuments({
+//     race: race_id,
+//     event: event_id,
+//     team: team_id,
+//     status: 'active',
+//   });
+
+//   // ✅ If updating to "active", check if the limit is already reached
+//   if (status === 'active' && activePlayersCount >= activePlayerLimit) {
+//     throw new BadRequestError(
+//       `This race already has ${activePlayerLimit} active players. Please switch an existing active player to substitute first.`
+//     );
+//   }
+
+//   existingAssignment.group = group;
+//   // ✅ Update the player's status
+//   existingAssignment.status = status;
+//   await existingAssignment.save();
+
+//   return { message: 'Player status updated successfully.' };
+// };
+
+// ✅ Update Player Status in a Race (with Group Handling)
+// ✅ Service 1: Update Player Status ONLY
+export const updatePlayerStatusOnly = async (
   race_id: string,
   event_id: string,
   team_id: string,
   club_id: string,
   player_id: string,
-  status: 'active' | 'substitute',
+  status: 'active' | 'substitute'
 ) => {
-  // ✅ Ensure the assignment exists
-  const existingAssignment = await RacePlayerAssignment.findOne({
+  const assignment = await RacePlayerAssignment.findOne({
     race: race_id,
     event: event_id,
     team: team_id,
     player: player_id,
-    club: club_id, // ✅ Ensure it's within the same club
+    club: club_id,
   });
 
-  if (!existingAssignment) {
+  if (!assignment) {
     throw new BadRequestError('Player is not assigned to this race in this event.');
   }
 
-  // ✅ Fetch the race details to get the `active_player_no` limit
   const race = await Race.findById(race_id);
-  if (!race) {
-    throw new BadRequestError('Race not found.');
-  }
-  const activePlayerLimit = race.active_player_no; // ✅ Get active player limit
+  if (!race) throw new BadRequestError('Race not found.');
 
-  // ✅ Count current "active" players in this race & team
-  const activePlayersCount = await RacePlayerAssignment.countDocuments({
+  const activePlayerLimit = race.active_player_no;
+  const activeCount = await RacePlayerAssignment.countDocuments({
     race: race_id,
     event: event_id,
     team: team_id,
-    status: 'active',
+    status: 'active'
   });
 
-  // ✅ If updating to "active", check if the limit is already reached
-  if (status === 'active' && activePlayersCount >= activePlayerLimit) {
+  if (status === 'active' && activeCount >= activePlayerLimit) {
     throw new BadRequestError(
       `This race already has ${activePlayerLimit} active players. Please switch an existing active player to substitute first.`
     );
   }
 
-  // ✅ Update the player's status
-  existingAssignment.status = status;
-  await existingAssignment.save();
+  if (status === 'substitute' && assignment.group) {
+    throw new BadRequestError(
+      `Cannot mark this player as substitute while they are assigned to group "${assignment.group}". Please remove the group assignment first.`
+    );
+  }
 
+  assignment.status = status;
+  await assignment.save();
   return { message: 'Player status updated successfully.' };
+};
+
+
+// ✅ Service 2: Update Player Group ONLY
+export const updatePlayerGroupOnly = async (
+  race_id: string,
+  event_id: string,
+  team_id: string,
+  club_id: string,
+  player_id: string,
+  group: string // can be "" to unassign
+) => {
+  const assignment = await RacePlayerAssignment.findOne({
+    race: race_id,
+    event: event_id,
+    team: team_id,
+    player: player_id,
+    club: club_id,
+  });
+
+  if (!assignment) {
+    throw new BadRequestError('Player is not assigned to this race in this event.');
+  }
+
+  // ✅ Unassigning group using $unset (will remove the field)
+  if (group === '') {
+    await RacePlayerAssignment.updateOne(
+      { _id: assignment._id },
+      { $unset: { group: "" } }
+    );
+    return { message: 'Group unassigned successfully.' };
+  }
+
+  // ✅ Assign group (only for active players)
+  if (assignment.status !== 'active') {
+    throw new BadRequestError('Only active players can be assigned to a group.');
+  }
+
+  assignment.group = group;
+  await assignment.save();
+
+  return { message: 'Group assigned successfully.' };
 };

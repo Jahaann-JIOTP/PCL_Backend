@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllEventsWithRacesController, updatePlayerStatus } from '../controllers/raceTeamController';
+import { getAllEventsWithRacesController, updatePlayerGroup, updatePlayerStatus } from '../controllers/raceTeamController';
 import { assignPlayers } from "../controllers/raceTeamController";
 import { protect } from "../middleware/authMiddleware";
 
@@ -13,6 +13,9 @@ eventRaceRouter.post("/assign-players", protect, assignPlayers);
 
 //  Update Player Status (Active / Substitute)
 eventRaceRouter.put("/update-player-status", protect, updatePlayerStatus);
+
+//  Update Player Status (Active / Substitute)
+eventRaceRouter.put("/assign-player-group", protect, updatePlayerGroup);
 
 export default eventRaceRouter;
 
