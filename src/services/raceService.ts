@@ -341,7 +341,17 @@ export const getRacesByEvent = async (eventName: string) => {
     .lean();
 
   // ✅ Step 10: Create Player Status Map
-  const playerStatusMap = new Map(playerAssignments.map((pa) => [pa.player.toString(), pa.status]));
+  // const playerStatusMap = new Map(playerAssignments.map((pa) => [pa.player.toString(), pa.status]));
+  const playerStatusMap = new Map<string, Map<string, string>>(); // Map<raceId, Map<playerId, status>>
+
+  playerAssignments.forEach(pa => {
+    const raceKey = pa.race.toString();
+    if (!playerStatusMap.has(raceKey)) {
+      playerStatusMap.set(raceKey, new Map());
+    }
+    playerStatusMap.get(raceKey)!.set(pa.player.toString(), pa.status);
+  });
+
 
   // ✅ Step 11: Map Players to Their Teams
   const teamPlayerMap = new Map();
@@ -365,8 +375,45 @@ export const getRacesByEvent = async (eventName: string) => {
     );
   });
 
-  // ✅ Step 12: Attach Teams (With Players) to Races
-  const racesWithTeams = races.map((race) => ({
+  /// ✅ Step 11 & 12 Combined: Attach Teams (With Players) to Races
+const racesWithTeams = races.map((race) => {
+  // ✅ Get player status map per race
+  const statusMapForRace = new Map(
+    playerAssignments
+      .filter((pa) => pa.race.toString() === race._id.toString())
+      .map((pa) => [pa.player.toString(), pa.status])
+  );
+
+  const teamsForRace = (raceTeamMap.get(race._id.toString()) || []).map(({ team: teamId, club: clubId }) => {
+    const team = teams.find((t) => t._id.toString() === teamId.toString());
+    if (!team) return null;
+
+    const playersForTeam = players
+      .filter((p) => p.team?.toString() === team._id.toString())
+      .map((player) => ({
+        _id: player._id,
+        player_name: player.name,
+        bib_number: player.bib_number || "N/A",
+        gender: player.gender,
+        cnic: player.cnic,
+        weight: player.weight,
+        emergency_contact: player.emergency_contact,
+        disability: player.disability,
+        age: player.age,
+        status: statusMapForRace.get(player._id.toString()) || "unassigned",
+      }));
+
+    return {
+      _id: team._id,
+      team_name: team.team_name,
+      team_type: team.team_type,
+      description: team.description,
+      club_name: clubMap.get(clubId.toString()) || "Unknown Club",
+      players: playersForTeam,
+    };
+  }).filter((team) => team !== null);
+
+  return {
     _id: race._id,
     name: race.name,
     type: race.type,
@@ -374,21 +421,9 @@ export const getRacesByEvent = async (eventName: string) => {
     date: race.date,
     time: race.time,
     event: race.event,
-    active_player_no: race.active_player_no, // ✅ Add Active Player Count
-    teams: (raceTeamMap.get(race._id.toString()) || []).map(({ team: teamId, club: clubId }) => {
-      const team = teams.find((t) => t._id.toString() === teamId.toString());
-      return team
-        ? {
-            _id: team._id,
-            team_name: team.team_name,
-            team_type: team.team_type,
-            description: team.description,
-            club_name: clubMap.get(clubId.toString()) || "Unknown Club", // ✅ Add Club Name
-            players: teamPlayerMap.get(team._id.toString()) || [],
-          }
-        : null;
-    }).filter((team) => team !== null), // ✅ Remove null values
-  }));
-
-  return racesWithTeams;
-};
+    active_player_no: race.active_player_no,
+    teams: teamsForRace,
+  };
+});
+return racesWithTeams;
+}
