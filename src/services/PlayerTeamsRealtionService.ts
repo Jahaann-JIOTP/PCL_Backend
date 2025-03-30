@@ -720,7 +720,7 @@ export const getFullEventRaceData = async (event_id: string) => {
   const playerIds = players.map(p => p._id);
 
   const assignments = await RacePlayerAssignment.find({ player: { $in: playerIds }, event: event_id })
-    .select('player race status')
+    .select('player race status group')
     .lean();
 
   const bibs = await BibAssignment.find({ player: { $in: playerIds }, event: event_id })
@@ -728,6 +728,7 @@ export const getFullEventRaceData = async (event_id: string) => {
     .lean();
 
   const statusMap = new Map(assignments.map(a => [`${a.player}-${a.race}`, a.status]));
+  const groupMap = new Map(assignments.map(a => [`${a.player}-${a.race}`, a.group || null]));
   const bibMap = new Map(bibs.map(b => [b.player.toString(), b.bib_number]));
 
   const teamMap = new Map();
@@ -762,10 +763,22 @@ export const getFullEventRaceData = async (event_id: string) => {
       teams: teamsInRace.map(({ team, club }) => {
         const teamData = teamMap.get(team);
         const players = playerTeamMap.get(team) || [];
-        const playersWithStatus = players.map(p => ({
-          ...p,
-          status: statusMap.get(`${p._id}-${race._id}`) || null
-        }));
+        const shouldIncludeGroup = ["Road Race Mix", "Road Race Women Only"].includes(race.type);
+        const playersWithStatus = players.map(p => {
+          const base = {
+            ...p,
+            status: statusMap.get(`${p._id}-${race._id}`) || null
+          };
+          
+          if (shouldIncludeGroup) {
+            return {
+              ...base,
+              group: groupMap.get(`${p._id}-${race._id}`) || null
+            };
+          }
+        
+          return base;
+        });
         return {
           _id: teamData._id,
           team_name: teamData.team_name,
@@ -921,10 +934,12 @@ export const getPublishedRaceDataByEvent = async (event_id: string, allowedRaceT
     event: event_id,
     race: { $in: raceIds },
     player: { $in: playerIds },
-  }).lean();
+  }).select("player status group race").lean();
 
   const statusMap = new Map(playerStatuses.map(p => [p.player.toString(), p.status]));
-
+  const groupMap = new Map(playerStatuses.map(p => [`${p.player.toString()}-${p.race.toString()}`, p.group || null]));
+  const raceTypeMap = new Map(races.map(r => [r._id.toString(), r.type]));
+  
   // 6. Bibs
   const bibs = await BibAssignment.find({ event: event_id, player: { $in: playerIds } }).lean();
   const bibMap = new Map(bibs.map(b => [b.player.toString(), b.bib_number]));
@@ -932,18 +947,26 @@ export const getPublishedRaceDataByEvent = async (event_id: string, allowedRaceT
   // 7. Group Players by Team
   const teamPlayerMap = new Map();
   teams.forEach(team => {
-    const teamPlayers = players.filter(p => p.team?.toString() === team._id.toString()).map(p => ({
-      _id: p._id,
-      player_name: p.name,
-      bib_number: bibMap.get(p._id.toString()) || "N/A",
-      gender: p.gender,
-      cnic: p.cnic,
-      weight: p.weight,
-      emergency_contact: p.emergency_contact,
-      status: statusMap.get(p._id.toString()) || null,
-    }));
+    const teamPlayers = players
+      .filter(p => p.team?.toString() === team._id.toString())
+      .map(p => {
+        const base = {
+          _id: p._id,
+          player_name: p.name,
+          bib_number: bibMap.get(p._id.toString()) || "N/A",
+          gender: p.gender,
+          cnic: p.cnic,
+          weight: p.weight,
+          emergency_contact: p.emergency_contact,
+          status: statusMap.get(p._id.toString()) || null,
+        };
+  
+        // ✅ Only add group if race is a Road Race (we’ll check later)
+        return { ...base, __playerId: p._id.toString() }; // temp field for race lookup
+      });
     teamPlayerMap.set(team._id.toString(), teamPlayers);
   });
+  
 
   // 8. Group teams under each race
   const raceMap = new Map();
@@ -962,15 +985,25 @@ export const getPublishedRaceDataByEvent = async (event_id: string, allowedRaceT
 
     const raceBlock = raceMap.get(assignment.race.toString());
     if (raceBlock) {
+      const isRoadRace = ["Road Race Mix", "Road Race Women Only"].includes(raceBlock.type);
+      const players = (teamPlayerMap.get(team._id.toString()) || []).map(p => {
+        const base = { ...p };
+        if (isRoadRace) {
+          base.group = groupMap.get(`${p.__playerId}-${assignment.race.toString()}`) || null;
+        }
+        delete base.__playerId;
+        return base;
+      });
+    
       raceBlock.teams.push({
         _id: team._id,
         team_name: team.team_name,
         team_type: team.team_type,
         club_id: assignment.club,
         club_name: clubMap.get(assignment.club.toString()) || "N/A",
-        players: teamPlayerMap.get(team._id.toString()) || [],
+        players,
       });
-    }
+    }    
   }
 
   return Array.from(raceMap.values());
